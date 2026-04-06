@@ -6,13 +6,6 @@ IMPORTANT
 > Each script contains a `USER SETTINGS` section (or equivalent) that must be edited before use.
 > Before running the scripts, please specify your local `.xlsx` dataset file(s) in the `INPUT_FILES`, `DATASETS`, or `REPRESENTATIVE_DATASETS` section at the top of each script, depending on which script you use.
 
-01. Overview
-02. Included scripts
-03. Expected input format
-04. Environment
-05. Quick start
-
-
 ---
 
 ## Overview
