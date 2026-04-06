@@ -1,0 +1,40 @@
+# ① 元データ（フォルダ & 拡張子）
+raw_data/
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+*.tsv
+~$*.xls*
+
+# ② 結果物（フォルダ & 拡張子）
+results/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.txt
+*.log
+*.pdf
+*.html
+*.htm
+*.rdata
+*.RData
+*.RDS
+
+# ③ 使用していないスクリプト
+old_R/
+old_py/
+
+# ④ OS / 環境依存
+.DS_Store
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.env
