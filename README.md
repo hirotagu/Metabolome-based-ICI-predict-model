@@ -1,222 +1,171 @@
-# Metabolomics ML Pipeline for ICI Response Prediction
+# ICI metabolomics validation analyses
 
-Research-oriented Python scripts for model development and evaluation on metabolomics datasets, with an emphasis on nested cross-validation, comparison against non-nested CV and holdout validation, additional partial nesting analysis, repeated holdout sensitivity analysis, and calibration analysis.
+This repository contains a consolidated public implementation of the Python
+analyses used to compare repeated nested cross-validation with intentionally
+non-nested validation in the ICI metabolomics study. It preserves the recorded
+analysis settings while removing duplicated scenario-specific script copies.
+The workflow starts from the 17 analysis-ready matrices released as
+`Supplementary Data 1.xlsx`.
 
-IMPORTANT
-> Each script contains a `USER SETTINGS` section (or equivalent) that must be edited before use.
-> Before running the scripts, please specify your local `.xlsx` dataset file(s) in the `INPUT_FILES`, `DATASETS`, or `REPRESENTATIVE_DATASETS` section at the top of each script, depending on which script you use.
+The code is intended for research reproducibility and method inspection. It
+does not provide a clinically deployable prediction model or a prespecified
+clinical decision threshold.
 
----
+## Contents
 
-## Overview
-This project is designed for binary prediction tasks using metabolomics data in Excel format. 
-The main workflow is:
+| File | Purpose |
+|---|---|
+| `prepare_inputs.py` | Validates and converts the 17 sheets in Supplementary Data 1 into the canonical input workbooks used by the analysis. |
+| `ICI_predict.py` | Primary repeated nested CV and the KNN, kmax30, outer3, regularization-grid, and SD sensitivity configurations. |
+| `ICI_analysis_common.py` | Shared model-fitting, validation, metrics, bootstrap, receipt, and provenance functions. This module is imported by the other scripts and is not run directly. |
+| `Compare_method.py` | Fully non-nested analysis and comparison with the primary nested-CV estimates. |
+| `Compare_nest.py` | Selective-nesting diagnostic for the six formal pre-ICI cohorts (Datasets 1-5 and 7). |
+| `Compare_sensitivity.py` | Scenario-matched nested versus non-nested sensitivity comparisons. |
+| `Holdout.py` | Prespecified seed-42 holdout and 25 repeated stratified holdouts. Dataset 3 Post 2 automatically uses the required higher elastic-net iteration ceiling. |
+| `Metrics_Calibration.py` | Discrimination, Brier score, and calibration analyses from saved predictions. |
 
-1. Build and internally validate the model with nested CV. -> ICI_predict_v2
-2. Compare nested CV with non-nested CV and single holdout. -> Compare_method_v2.py
-3. Examine where optimism arises using partial nesting analysis. -> Partial nest analysis.py
-4. Assess robustness with repeated holdout analysis. -> Repeat holdout analysis.py
-5. Compute calibration metrics from saved prediction files. -> Calibration.py
+Publication-only figure assembly and manual manuscript table formatting are not
+part of this repository. The submitted figures, tables, and source-data files
+are provided with the article.
 
----
+## Software environment
 
-## Included scripts
-### 1. `ICI_predict_v2.py`
-Core pipeline for model development and nested cross-validation.
+The analyses were run with Python 3.11.14 and the package versions pinned in
+`requirements.txt`:
 
-Main functions:
-- Reads one-sheet `.xlsx` metabolomics datasets
-- Performs nested CV with repeated outer and inner folds
-- Tunes elastic-net logistic regression hyperparameters
-- Ranks features using stability-based selection logic
-- Selects top-`k` features with the 1-SE rule using L2 logistic regression
-- Saves out-of-fold predictions, summary tables, figures, and a final fitted model package
+- numpy 2.3.3
+- pandas 2.3.3
+- scikit-learn 1.7.2
+- scipy 1.16.2
+- openpyxl 3.1.5
 
-Typical outputs include:
-- `oof_predictions.csv`
-- `metrics_summary.csv`
-- `tuning_summary.csv`
-- `k_curve_per_outer.csv`
-- `k_curve_summary.csv`
-- `feature_selection_frequency.csv`
-- `outer_topk_features.csv`
-- ROC / PR / calibration / DCA / confusion matrix figures
-- `final_model.joblib`
-- `final_model_spec.json`
-
-### 2. `Compare_method_v2.py`
-Compares three evaluation schemes on representative datasets:
-- Nested CV (`nCV`)
-- Non-nested CV (`CV`)
-- Single holdout split (`holdout`)
-
-Typical outputs include:
-- `comparison_subset_auc.csv`
-- `comparison_table.csv`
-- `comparison_summary.csv`
-- `nonnested_oof_pred.csv`
-- `single_split_test_pred.csv`
-- comparison plots
-
-### 3. `Partial nest analysis.py`
-Decomposes the optimism gap between nested CV and non-nested CV using:
-- `nCV`
-- `Enet-nest`
-- `L2-nest`
-- `CV`
-
-Typical outputs include:
-- `auc_by_dataset.csv`
-- `k_summary.csv`
-- `wilcoxon_vs_nCV.csv`
-- `figure_nest_compare.tiff`
-
-### 4. `Repeat holdout analysis.py`
-Sensitivity analysis using repeated stratified holdout splits.
-
-Typical outputs include:
-- `holdout_repeat_per_split.csv`
-- `holdout_repeat_summary.csv`
-- `holdout_repeat_vs_ncv_stats.csv`
-
-### 5. `Calibration.py`
-Supportive calibration analysis from prediction files already generated by the other scripts.
-
-Metrics include:
-- calibration intercept
-- calibration slope
-- Brier score
-- bootstrap 95% confidence intervals
-
-Typical outputs include:
-- `calibration_all_long.csv`
-- `calibration_all_wide.csv`
-- `calibration_group_summary.csv`
-- `calibration_manuscript_summary.csv`
-- `calibration_support_17datasets.xlsx`
-- calibration forest plots
-
----
-
-## Expected input format
-
-Each dataset should be a single-sheet Excel file (`.xlsx`) containing:
-
-- `id`: sample identifier
-- `Responder`: binary label (`0/1`, where `1 = positive`)
-- all remaining columns: metabolite / feature values
-
-## Important preprocessing assumptions
-
-In the current implementation:
-- values `< 0` are treated as missing
-- values equal to `0` are also treated as missing
-- features with excessive missingness are filtered out
-- missing values are imputed using half of the minimum observed positive value per feature
-- data are log-transformed using `log1p`
-- constant features are removed
-- retained features are z-scored
-
-Because these choices are coded directly into the pipeline, users should confirm that they are appropriate for their own metabolomics platform and preprocessing policy.
-
----
-
-## Environment
-
-Recommended:
-- Python 3.10+
-- macOS / Linux / Windows with a standard Python environment
-
-Install dependencies:
+Example environment setup:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-numpy>=1.24
-pandas>=2.0
-scipy>=1.10
-scikit-learn>=1.3
-matplotlib>=3.7
-openpyxl>=3.1
-joblib>=1.3
+## Prepare the public inputs
 
----
-
-## Quick start
-
-### Step 1. Run the nested CV pipeline
-Edit the `USER SETTINGS` section in `ICI_predict_v2.py`, especially:
-- `INPUT_FILES`
-- `OUTPUT_ROOT`
-
-Then run:
+Place `Supplementary Data 1.xlsx` beside the scripts, then run:
 
 ```bash
-python ICI_predict_v2.py
+python prepare_inputs.py --input "Supplementary Data 1.xlsx"
 ```
 
-### Step 2. Compare evaluation schemes
-Edit the settings in `Compare_method_v2.py`, especially:
-- `REPRESENTATIVE_DATASETS`
-- `NESTED_RESULTS_ROOT`
-- `COMPARE_OUTPUT_ROOT`
+The script creates `raw/` with 17 one-sheet workbooks and `input_qc.csv`. It
+checks sheet order, IDs, binary outcomes, numeric feature values, cohort counts,
+feature counts, and output hashes. Existing inputs are never overwritten.
 
-Then run:
+| Source sheet | Canonical analysis key |
+|---|---|
+| Sheet1 | dataset1_pre |
+| Sheet2 | dataset2_pre |
+| Sheet3 | dataset3_pre |
+| Sheet4 | dataset4_pre |
+| Sheet5 | dataset5_pre |
+| Sheet6 | dataset6_pre |
+| Sheet7 | dataset7_pre |
+| Sheet8 | dataset1_post1 |
+| Sheet9 | dataset2_post1 |
+| Sheet10 | dataset3_post1 |
+| Sheet11 | dataset4_post1 |
+| Sheet12 | dataset5_post1 |
+| Sheet13 | dataset6_post1 |
+| Sheet14 | dataset2_post2 |
+| Sheet15 | dataset3_post2 |
+| Sheet16 | dataset4_post2 |
+| Sheet17 | dataset5_post2 |
+
+## Run the analyses
+
+Run the following commands from the repository root. Each script writes to a
+separate subdirectory under `results_revision/` and refuses to overwrite a
+completed run.
 
 ```bash
-python Compare_method_v2.py
+# Primary repeated nested CV: 17 matrices
+python ICI_predict.py --scenario primary
+
+# Primary nested versus fully non-nested comparison
+python Compare_method.py
+
+# Selective-nesting diagnostic: Datasets 1-5 and 7, pre-ICI
+python Compare_nest.py
+
+# Publicly reproducible sensitivity scenarios
+python ICI_predict.py --scenario knn
+python ICI_predict.py --scenario kmax30
+python ICI_predict.py --scenario outer3
+python ICI_predict.py --scenario reggrid
+python Compare_sensitivity.py
+
+# Repeated holdout and calibration
+python Holdout.py
+python Metrics_Calibration.py
 ```
 
-### Step 3. Run partial nesting analysis
-- Place `Partial nest analysis.py` in the same directory as `ICI_predict_v2.py`, and run `ICI_predict_v2.py` beforehand so that nested-CV result files already exist.
-- Edit the `DATASETS` variable at the top of the script.
+These analyses are computationally intensive. Do not rename or edit the Python
+files between dependent runs: downstream scripts verify producer and artifact
+SHA256 hashes. If code or settings are changed, start again in a clean output
+directory rather than mixing outputs from different versions.
 
-Format:
-```python
-DATASETS = [
-    # (r"/path/to/local_dataset_01.xlsx", r"/path/to/existing_ncv_result_dir_01"),
-    # (r"/path/to/local_dataset_02.xlsx", r"/path/to/existing_ncv_result_dir_02"),
-]
-```bash
-python "Partial nest analysis.py"
+## Analysis scenarios
+
+`ICI_predict.py` contains one modeling implementation. The command-line
+scenario selects only the prespecified targets and settings:
+
+| Scenario | Analysis |
+|---|---|
+| `primary` | Primary repeated nested CV on all 17 matrices |
+| `knn` | KNN-imputation sensitivity analysis for Dataset 2 Pre |
+| `kmax30` | Maximum top-k increased from 10 to 30 on all 17 matrices |
+| `outer3` | Three-fold outer-CV sensitivity analysis on all 17 matrices |
+| `reggrid` | Expanded regularization-grid sensitivity analysis on Datasets 1-5 and 7 Pre |
+| `sd` | Stable disease recoded as responder/non-responder for Dataset 1 Pre and Post 1 |
+
+### Stable-disease sensitivity analysis
+
+The two alternative stable-disease recodings used by the `sd` scenario are not
+included in Supplementary Data 1. The scenario code is retained for transparent
+method reporting, but this branch cannot be reproduced from the publicly
+provided workbook alone. Consequently, the public default in
+`Compare_sensitivity.py` compares `knn`, `kmax30`, `outer3`, and `reggrid`; it
+does not silently claim to reproduce the unavailable SD branch.
+
+## Reproducibility safeguards
+
+- Random seed: 42.
+- Imputation, scaling, feature ranking, feature selection, and tuning are fitted
+  within training partitions.
+- Primary discrimination is calculated from held-out, patient-level averaged
+  out-of-fold predictions.
+- Sample counts, settings, software versions, warnings, output hashes, and
+  producer hashes are recorded in run receipts.
+- Bootstrap intervals are conditional on the saved patient-level averaged OOF
+  predictions and do not include uncertainty from repartitioning, feature
+  selection, tuning, or model refitting.
+- The repeated holdout splits overlap and are used descriptively rather than as
+  independent replicates.
+
+## Generated files
+
+The principal run directories are:
+
+```text
+results_revision/All_data_primary
+results_revision/Compare_method_v1
+results_revision/Compare_nest_v1
+results_revision/All_data_KNN
+results_revision/All_data_Kmax30
+results_revision/All_data_outer3
+results_revision/All_data_RegGrid
+results_revision/Compare_sensitivity_v1
+results_revision/Holdout_v1
+results_revision/Metrics_Calibration_v1
 ```
 
-### Step 4. Run repeated holdout sensitivity analysis
-- Place `Repeat holdout analysis.py` in the same directory as:
-  - `Compare_method_v2.py`
-  - `ICI_predict_v2.py`
-- The same directory must also contain the per-dataset nested-CV result folders generated in advance.
-- Edit the `DATASETS` variable at the top of the script.
-
-Format:
-```python
-DATASETS = [
-    # (r"/path/to/local_dataset_01.xlsx", "Dataset 1"),
-    # (r"/path/to/local_dataset_02.xlsx", "Dataset 2"),
-]
-
-```bash
-python "Repeat holdout analysis.py"
-```
-
-### Step 5. Run calibration analysis
-- Run this script after generating prediction files with the other scripts
-- Expected saved inputs include:
-1. oof_predictions.csv
-2. nonnested_oof_pred.csv
-3. single_split_test_pred.csv
-
-Format:
-```python
-DATASETS = [
-    # (r"/path/to/local_dataset_01.xlsx", r"/path/to/existing_ncv_result_dir_01"),
-    # (r"/path/to/local_dataset_02.xlsx", r"/path/to/existing_ncv_result_dir_02"),
-]
-```bash
-python Calibration.py
-```
-
----
+Generated input and result directories are excluded by `.gitignore`.
