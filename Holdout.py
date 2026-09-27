@@ -20,6 +20,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 import ICI_predict as base
 import ICI_analysis_common as common
+import dataset_selection as selection
 
 
 # =============================================================================
@@ -74,21 +75,9 @@ def _en_max_iter_limit(dataset_key: str) -> int:
 
 
 def _selected_keys(specs: Dict[str, base.DatasetSpec]) -> List[str]:
-    if isinstance(DATASETS_TO_RUN, str) and DATASETS_TO_RUN.upper() in {"ALL", "ALL_PRIMARY"}:
-        missing = sorted(set(CANONICAL_KEYS).difference(specs))
-        extra = sorted(set(specs).difference(CANONICAL_KEYS))
-        if missing or extra:
-            raise ValueError(f"Canonical 17-matrix set mismatch; missing={missing}; extra={extra}")
-        return list(CANONICAL_KEYS)
-    selected = base.select_targets(DATASETS_TO_RUN, list(specs))
-    if not isinstance(DATASETS_TO_RUN, str):
-        requested = [str(value).strip().lower() for value in DATASETS_TO_RUN]
-        if len(requested) != len(set(requested)):
-            raise ValueError("DATASETS_TO_RUN contains duplicate keys")
-        missing = sorted(set(requested).difference(selected))
-        if missing:
-            raise ValueError(f"Unknown requested dataset keys: {missing}")
-    return selected
+    return selection.select_available(
+        DATASETS_TO_RUN, specs, default_keys=CANONICAL_KEYS
+    )
 
 
 def _holdout_splits(y: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
@@ -386,6 +375,7 @@ def run_dataset(
     common.write_json(
         output_dir / "settings_used.json",
         {
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "input_path": str(spec.path),
             "input_sha256": bundle.input_sha256,
             "test_size": TEST_SIZE,
@@ -456,6 +446,7 @@ def run_dataset(
             },
             "warning_count": len(warning_rows),
             "output_sha256": output_hashes,
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             **common.provenance_payload(Path(__file__)),
         },
     )
@@ -489,6 +480,10 @@ def main() -> None:
     if not keys:
         raise RuntimeError("DATASETS_TO_RUN did not match any canonical input")
     run_root = common.prepare_run_root(_run_root(), ALLOW_OVERWRITE)
+    common.write_csv(
+        pd.DataFrame(selection.coverage_rows(specs, keys, expected=CANONICAL_KEYS)),
+        run_root / "input_coverage.csv",
+    )
 
     summary_rows: List[Dict[str, Any]] = []
     manifest_rows: List[Dict[str, Any]] = []
@@ -552,6 +547,9 @@ def main() -> None:
         {
             "analysis": "prespecified_and_repeated_stratified_holdout",
             "datasets_to_run": DATASETS_TO_RUN,
+            "selected_datasets": keys,
+            "input_coverage_file": "input_coverage.csv",
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "test_size": TEST_SIZE,
             "holdout_splits": HOLDOUT_SPLITS,
             "random_state": RANDOM_STATE,

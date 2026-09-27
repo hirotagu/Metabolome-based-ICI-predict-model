@@ -1,0 +1,156 @@
+{
+  "upstream_repository": "https://github.com/hirotagu/Metabolome-based-ICI-predict-model",
+  "upstream_commit": "a8c252ec4b64bbc4409c8f17ccd097e9fe009f65",
+  "update_scope": [
+    "available-known-matrix subset input",
+    "revision2 descriptive reporting",
+    "six-formal-Pre KNN selection",
+    "saved-OOF bin-wise Wilson intervals",
+    "aggregate-only calibration rendering with explicit subset coverage"
+  ],
+  "model_refitting_performed": false,
+  "sources": {
+    "KNN_Revision_R4_8_v1_0_2.zip": "983211d9f65e81d33ae3f8b74c927d2cf213408fdb65c9078095691a1f9eb05d",
+    "Revision_round2_minimal_updates_20260925.zip": "f96cbc2cb49554bbff475acb38a74a4540c594e93202a60adb1ba11c459cbcc5",
+    "Publication_figure_updates_original_style.zip": "302acd3ede7e42afa1a99f58c73208c41bd7f2b575ddf3dfe993006d76e40980",
+    "revision_script.zip": "2c1128b91d33c3afe1e9b3ba4eb68afc525ee01da0517001d064267c4de4f3fe"
+  },
+  "validation_environment": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scipy": "1.17.0",
+    "scikit_learn": "1.8.0",
+    "openpyxl": "3.1.5",
+    "matplotlib": "3.10.8",
+    "pillow": "12.3.0",
+    "plot_font": "DejaVu Sans",
+    "plot_dpi": 150
+  },
+  "uploaded_revision_script_comparison": {
+    "completed": true,
+    "archive": "revision_script.zip",
+    "python_files": 18,
+    "source_access": "user-uploaded snapshot; live Mac directory not accessed",
+    "scenario_setting_checks": 180,
+    "saved_receipts_with_matching_uploaded_producer_sha256": 171,
+    "matching_uploaded_producer_identities": 12,
+    "uploaded_KNN_scope": "dataset2_pre_only",
+    "six_cohort_KNN_source": "KNN_Revision_R4_8_v1_0_2.zip",
+    "uploaded_publication_code_has_Wilson_intervals": false,
+    "source_data_reconstruction_performed": false,
+    "report": "REVISION2_SOURCE_AUDIT.md",
+    "files": [
+      {
+        "file": "revision_script/ICI_predict_v3_SD.py",
+        "sha256": "64d2ab43b28df10a9319637aaf2cc6025360d5471216fdeec58094e08dd93db1",
+        "bytes": 95745
+      },
+      {
+        "file": "revision_script/Publication_outputs.py",
+        "sha256": "4501038511107007e7ade0d58ef4474596f75ceb39873200d1db085dcc59717d",
+        "bytes": 7679
+      },
+      {
+        "file": "revision_script/ICI_predict_v3_kmax.py",
+        "sha256": "9707f32e708768a57226abb9d0da2d253addf47d9cdc0729a17812795211328f",
+        "bytes": 96038
+      },
+      {
+        "file": "revision_script/ICI_predict_v3_out3.py",
+        "sha256": "39c6a6e494c74bb8e3dc623b62b7ca1ecb2aa36a30b00d37284ccbc3eda85f30",
+        "bytes": 95696
+      },
+      {
+        "file": "revision_script/Compare_method.py",
+        "sha256": "4b74ba5b70337a265f4513abd1b87aedb3bb5de0acd8ea6961f0a5d635baaad3",
+        "bytes": 23176
+      },
+      {
+        "file": "revision_script/publication_figures.py",
+        "sha256": "8b24e8011493ad9560f3abb852470b666b6841952e1d4c5c981d6b1cf9eade08",
+        "bytes": 45491
+      },
+      {
+        "file": "revision_script/Compare_sensitivity.py",
+        "sha256": "84f8448badb3e6bcba7df52c30474b338cba1256e871a26eabf6f37527ec15bc",
+        "bytes": 77269
+      },
+      {
+        "file": "revision_script/ICI_predict_v3_RedGrid.py",
+        "sha256": "d71a1c672fa6ff66181f4e3f032c095d189bae87a8eb0e2713c19c36214ccbf2",
+        "bytes": 96012
+      },
+      {
+        "file": "revision_script/ICI_revision_common.py",
+        "sha256": "d1233354c4b68ef78d279d5ec7fce91cad741d7e959325e65f4c64418dc1cfee",
+        "bytes": 46771
+      },
+      {
+        "file": "revision_script/Metrics_Calibration.py",
+        "sha256": "05f64f05aa101b432aac5609bb1f6039d0aab9c71d2eb66aa7d69be159032f55",
+        "bytes": 46407
+      },
+      {
+        "file": "revision_script/data3-5作成.py",
+        "sha256": "4ce65d372476112adfa3006552a565f003e3bea6341d466b7657066905f44c23",
+        "bytes": 61653
+      },
+      {
+        "file": "revision_script/Compare_nest.py",
+        "sha256": "5e44d96ef679d8a41a95045e21515e74c8e68b894d83164cce6d883f0c626400",
+        "bytes": 32507
+      },
+      {
+        "file": "revision_script/Holdout.py",
+        "sha256": "e8721cebead8f0aae521a90bbdaa0d91f99a742fce955a86ffee51e2ab9dce07",
+        "bytes": 20101
+      },
+      {
+        "file": "revision_script/data6作成.py",
+        "sha256": "ab997aeb0a9fc2845f81954dfc8c39118dfb1ca2be14b176bdff400994901aca",
+        "bytes": 56952
+      },
+      {
+        "file": "revision_script/ICI_predict_v3.py",
+        "sha256": "0de01ecf0343db77be9d24ab6180b1dfe29ae3fd9fb11a594b85adca57022867",
+        "bytes": 95727
+      },
+      {
+        "file": "revision_script/publication_tables.py",
+        "sha256": "1c56adcc8ea57e6d53f23177fadef17976a09b737b4f08ea878b600201b8c504",
+        "bytes": 51254
+      },
+      {
+        "file": "revision_script/ICI_predict_v3_KNN.py",
+        "sha256": "b626d4d0c15d72ee738e98e469ef2ff4994094620f9c8a61984c05c31d387861",
+        "bytes": 95704
+      },
+      {
+        "file": "revision_script/Holdout_d3-2.py",
+        "sha256": "3645d544298a346c9228da1b883f05993bb33be20cd4fc5b8fef4356e5046ac9",
+        "bytes": 20429
+      }
+    ]
+  },
+  "validation_tests_passed": 39,
+  "patch_packaging": {
+    "baseline_commit": "a8c252ec4b64bbc4409c8f17ccd097e9fe009f65",
+    "exact_git_blobs": {
+      ".gitignore": "94d69e41e92412f7aa117d3435eee7e06fef3ea5",
+      "ICI_predict.py": "46f8a0c1006d051bdc00cfcc2a21f5f6a9d098b3",
+      "README.md": "b1ca1aec9a79f60e8bfacad89b562adfa7531422",
+      "Compare_method.py": "05ee28cea7c3086e68943810cf06c0662d780f4d",
+      "Compare_nest.py": "c9d0b74ca4bc278e20c5337630740271e997497a",
+      "Compare_sensitivity.py": "271ece0351cafbcdcdd5c7ae6a8494452855300a",
+      "Holdout.py": "1d9d15b5dfc036e60db08768415d907dd584eaec",
+      "ICI_analysis_common.py": "b669dc185c5f9fd04329f76e9044e25bcc544b44",
+      "LICENSE": "d6aba0ac2bb408343977f8f6f0959d7ccf02155d",
+      "Metrics_Calibration.py": "6dbf6d78e6344fa918f59d4a18b64db5931d27aa",
+      "prepare_inputs.py": "4ed03e59365325f4c782744df65cb13d03e01821",
+      "requirements.txt": "ca71a58676f5dce832c52db556ba4abe48796baf"
+    },
+    "fixed_issue": "The initial text retrieval added a trailing blank line to the reconstructed baseline. Regenerated patch from exact GitHub bytes.",
+    "numerical_code_changed": false
+  }
+}

@@ -19,6 +19,7 @@ import pandas as pd
 
 import ICI_predict as base
 import ICI_analysis_common as common
+import dataset_selection as selection
 
 
 # =============================================================================
@@ -33,8 +34,8 @@ MAIN_RUN_ROOT = SCRIPT_DIR / "results_revision" / "All_data_primary"
 OUTPUT_ROOT = SCRIPT_DIR / "results_revision"
 RUN_TAG = "Compare_method_v1"
 
-# "ALL" runs all 17 canonical matrices. A list such as ["dataset4_pre"] is
-# useful for a technical test.
+# "ALL" runs available canonical matrices, preserving original dataset IDs.
+# Explicitly requested missing datasets are errors.
 DATASETS_TO_RUN: Union[str, List[str]] = "ALL"
 
 MAX_K = base.PRIMARY_MAX_K
@@ -45,7 +46,8 @@ STRICT_BASE_SCRIPT_HASH = True
 CONTINUE_ON_DATASET_ERROR = True
 ALLOW_OVERWRITE = False
 
-# One prespecified formal inference: independent Pre cohorts 1-5 and 7.
+# Prespecified comparisons across independent Pre cohorts 1-5 and 7.
+# Nominal p-values are descriptive for these six small, heterogeneous cohorts.
 FORMAL_PRE_KEYS: Tuple[str, ...] = (
     "dataset1_pre",
     "dataset2_pre",
@@ -80,21 +82,9 @@ def _run_root() -> Path:
 
 
 def _selected_keys(specs: Dict[str, base.DatasetSpec]) -> List[str]:
-    if isinstance(DATASETS_TO_RUN, str) and DATASETS_TO_RUN.upper() in {"ALL", "ALL_PRIMARY"}:
-        missing = sorted(set(CANONICAL_KEYS).difference(specs))
-        extra = sorted(set(specs).difference(CANONICAL_KEYS))
-        if missing or extra:
-            raise ValueError(f"Canonical 17-matrix set mismatch; missing={missing}; extra={extra}")
-        return list(CANONICAL_KEYS)
-    selected = base.select_targets(DATASETS_TO_RUN, list(specs))
-    if not isinstance(DATASETS_TO_RUN, str):
-        requested = [str(value).strip().lower() for value in DATASETS_TO_RUN]
-        if len(requested) != len(set(requested)):
-            raise ValueError("DATASETS_TO_RUN contains duplicate keys")
-        missing = sorted(set(requested).difference(selected))
-        if missing:
-            raise ValueError(f"Unknown requested dataset keys: {missing}")
-    return selected
+    return selection.select_available(
+        DATASETS_TO_RUN, specs, default_keys=CANONICAL_KEYS
+    )
 
 
 def _fold_parameter_row(
@@ -350,6 +340,7 @@ def run_non_nested(
     common.write_json(
         output_dir / "settings_used.json",
         {
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "main_run_dir": str(artifact.run_dir),
             "main_run_receipt_sha256": common.sha256_file(
                 artifact.run_dir / "run_receipt.json"
@@ -401,6 +392,7 @@ def run_non_nested(
             "metrics": comparison,
             "warning_count": len(warning_rows),
             "output_sha256": output_hashes,
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             **common.provenance_payload(Path(__file__)),
         },
     )
@@ -417,7 +409,7 @@ def build_formal_inference(comparison: pd.DataFrame) -> pd.DataFrame:
             [
                 {
                     "test": "not_run",
-                    "inferential_role": "primary",
+                    "inferential_role": "descriptive_nominal_primary",
                     "status": "missing_prespecified_cohorts",
                     "required_datasets": "|".join(FORMAL_PRE_KEYS),
                     "missing_datasets": "|".join(missing),
@@ -444,16 +436,20 @@ def build_formal_inference(comparison: pd.DataFrame) -> pd.DataFrame:
         "n_negative": int(np.sum(delta < 0)),
         "n_zero": int(np.sum(delta == 0)),
         "multiplicity": (
-            "not applicable; one prespecified primary comparison; sign test is sensitivity"
+            "nominal unadjusted p-values; prespecified primary comparison with sign-test sensitivity"
         ),
-        "inference_scope": "the six included independent Pre cohorts",
+        "inference_scope": "descriptive nominal comparisons of the six included heterogeneous Pre cohorts",
+        "p_value_interpretation": (
+            "descriptive nominal p-values; not evidence for a common effect or "
+            "generalization to a wider population of datasets"
+        ),
     }
     return pd.DataFrame(
         [
             {
                 **shared,
                 "test": "exact_two_sided_signed_rank_by_sign_enumeration",
-                "inferential_role": "primary",
+                "inferential_role": "descriptive_nominal_primary",
                 "p_value": signed_rank["p_value"],
                 "n_nonzero_used": signed_rank["n_nonzero"],
                 "test_detail": (
@@ -463,7 +459,7 @@ def build_formal_inference(comparison: pd.DataFrame) -> pd.DataFrame:
             {
                 **shared,
                 "test": "exact_two_sided_sign_test",
-                "inferential_role": "sensitivity",
+                "inferential_role": "descriptive_nominal_sensitivity",
                 "p_value": sign["p_value"],
                 "n_nonzero_used": sign["n_nonzero"],
                 "test_detail": "zeros excluded; exact binomial probability under p=0.5",
@@ -486,6 +482,10 @@ def main() -> None:
     if not keys:
         raise RuntimeError("DATASETS_TO_RUN did not match any canonical input")
     run_root = common.prepare_run_root(_run_root(), ALLOW_OVERWRITE)
+    common.write_csv(
+        pd.DataFrame(selection.coverage_rows(specs, keys, expected=CANONICAL_KEYS)),
+        run_root / "input_coverage.csv",
+    )
 
     comparison_rows: List[Dict[str, Any]] = []
     manifest_rows: List[Dict[str, Any]] = []
@@ -546,10 +546,14 @@ def main() -> None:
             "analysis": "fully_nested_vs_fully_non_nested",
             "main_run_root": str(Path(MAIN_RUN_ROOT).resolve()),
             "datasets_to_run": DATASETS_TO_RUN,
+            "selected_datasets": keys,
+            "input_coverage_file": "input_coverage.csv",
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "formal_pre_keys": list(FORMAL_PRE_KEYS),
-            "formal_primary_test": "exact two-sided signed-rank by sign enumeration",
-            "formal_sensitivity_test": "exact two-sided sign test",
-            "multiplicity": "not applicable; one prespecified primary comparison",
+            "nominal_primary_comparison": "exact two-sided signed-rank by sign enumeration",
+            "nominal_sensitivity_comparison": "exact two-sided sign test",
+            "p_value_interpretation": "descriptive nominal across six small heterogeneous Pre cohorts; not a common-effect or population-generalization claim",
+            "multiplicity": "nominal unadjusted p-values; one prespecified descriptive primary comparison",
             "dataset_level_tests": "not performed",
             "post_tests": "not performed",
             "dataset6_test": "not performed; descriptive supplement",

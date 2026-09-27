@@ -24,6 +24,7 @@ import pandas as pd
 
 import ICI_predict as base
 import ICI_analysis_common as common
+import dataset_selection as selection
 
 
 # =============================================================================
@@ -40,7 +41,7 @@ RUN_TAG = "Compare_nest_v1"
 PRE_KEYS: Tuple[str, ...] = tuple(
     f"dataset{number}_pre" for number in (1, 2, 3, 4, 5, 7)
 )
-DATASETS_TO_RUN: Union[str, List[str]] = list(PRE_KEYS)
+DATASETS_TO_RUN: Union[str, List[str]] = "ALL"
 
 MAX_K = base.PRIMARY_MAX_K
 STRICT_BASE_SCRIPT_HASH = True
@@ -61,20 +62,12 @@ def _run_root() -> Path:
 
 
 def _selected_keys(specs: Mapping[str, base.DatasetSpec]) -> List[str]:
-    selected = base.select_targets(DATASETS_TO_RUN, list(specs))
-    if not isinstance(DATASETS_TO_RUN, str):
-        requested = [str(value).strip().lower() for value in DATASETS_TO_RUN]
-        if len(requested) != len(set(requested)):
-            raise ValueError("DATASETS_TO_RUN contains duplicate keys")
-        missing = sorted(set(requested).difference(selected))
-        if missing:
-            raise ValueError(f"Unknown requested dataset keys: {missing}")
+    selected = selection.select_available(
+        DATASETS_TO_RUN, specs, default_keys=PRE_KEYS
+    )
     invalid = [key for key in selected if key not in PRE_KEYS]
     if invalid:
-        raise ValueError(
-            f"Compare_nest is restricted to the prespecified Pre cohorts "
-            f"(Datasets 1-5 and 7): {invalid}"
-        )
+        raise ValueError(f"Compare_nest supports only Datasets 1-5 and 7 Pre: {invalid}")
     return selected
 
 
@@ -641,6 +634,7 @@ def run_dataset(
     common.write_json(
         output_dir / "settings_used.json",
         {
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "main_source_dir": str(artifact.run_dir),
             "compare_method_source_dir": str(compare["run_dir"]),
             "input_path": str(artifact.spec.path),
@@ -699,6 +693,7 @@ def run_dataset(
             "sample_counts": base.class_counts(artifact.bundle.y),
             "metrics": metric_rows,
             "output_sha256": output_hashes,
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             **common.provenance_payload(Path(__file__)),
         },
     )
@@ -715,6 +710,10 @@ def main() -> None:
     if not keys:
         raise RuntimeError("No Dataset 1-7 Pre inputs were selected")
     run_root = common.prepare_run_root(_run_root(), ALLOW_OVERWRITE)
+    common.write_csv(
+        pd.DataFrame(selection.coverage_rows(specs, keys, expected=PRE_KEYS)),
+        run_root / "input_coverage.csv",
+    )
 
     metrics_all: List[Dict[str, Any]] = []
     manifest_rows: List[Dict[str, Any]] = []
@@ -769,6 +768,9 @@ def main() -> None:
             "main_run_root": str(Path(MAIN_RUN_ROOT).resolve()),
             "compare_method_run_root": str(Path(COMPARE_METHOD_RUN_ROOT).resolve()),
             "datasets_to_run": DATASETS_TO_RUN,
+            "selected_datasets": keys,
+            "input_coverage_file": "input_coverage.csv",
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "methods": list(METHOD_ORDER),
             "hybrids_are_valid_performance_estimators": False,
             "formal_tests": "not performed",

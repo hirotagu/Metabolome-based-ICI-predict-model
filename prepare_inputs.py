@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Create the 17 canonical analysis workbooks from Supplementary Data 1.
+"""Create canonical analysis workbooks for the supplied study matrices.
 
-The source workbook is the analysis-ready public dataset.  Each data sheet is
+The source workbook contains any nonempty subset of the known study sheets.
+Original Sheet numbers or canonical dataset keys identify matrices; sheets are
+never renumbered. Presence does not establish sharing permission. Each sheet is
 validated, standardized to ``id``/``category`` followed by numeric features,
 and written as a one-sheet workbook named ``datasetN_pre/post1/post2.xlsx``.
 Existing output content is never overwritten.
@@ -19,6 +21,8 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
+
+from dataset_selection import coverage_rows
 
 
 # =============================================================================
@@ -198,7 +202,7 @@ def _read_validate_sheet(
     for feature in feature_names:
         original = frame[feature]
         numeric = pd.to_numeric(original, errors="coerce")
-        bad = original.notna() & numeric.isna()
+        bad = original.notna() & (numeric.isna() | ~np.isfinite(numeric))
         if bad.any():
             examples = original.loc[bad].astype(str).unique().tolist()[:5]
             conversion_errors.append(f"{feature}: {examples}")
@@ -295,16 +299,33 @@ def prepare_inputs(input_xlsx: Path, output_dir: Path) -> pd.DataFrame:
 
     workbook = load_workbook(input_xlsx, read_only=True, data_only=True)
     try:
-        expected_sheets = ["README", *(item[0] for item in SHEET_PLAN)]
-        if workbook.sheetnames != expected_sheets:
-            raise ValueError(
-                "Supplementary Data 1 sheet structure differs from the published "
-                f"mapping; expected={expected_sheets}, found={workbook.sheetnames}"
-            )
+        aliases = {
+            alias.casefold(): item
+            for item in SHEET_PLAN
+            for alias in (item[0], item[1])
+        }
+        selected_plan = []
+        seen = set()
+        for sheet_name in workbook.sheetnames:
+            if sheet_name.casefold() == "readme":
+                continue
+            item = aliases.get(sheet_name.casefold())
+            if item is None:
+                raise ValueError(
+                    f"Unknown data sheet {sheet_name!r}; preserve original Sheet1–Sheet17 "
+                    "names or use the canonical datasetN_pre/post1/post2 key."
+                )
+            key = item[1]
+            if key in seen:
+                raise ValueError(f"Duplicate dataset mapping for {key}: {sheet_name}")
+            seen.add(key)
+            selected_plan.append((sheet_name, *item[1:]))
+        if not selected_plan:
+            raise ValueError("No known dataset sheets were provided")
     finally:
         workbook.close()
 
-    planned_paths = [output_dir / f"{item[1]}.xlsx" for item in SHEET_PLAN]
+    planned_paths = [output_dir / f"{item[1]}.xlsx" for item in selected_plan]
     existing_targets = [path for path in planned_paths if path.exists()]
     if existing_targets:
         raise FileExistsError(
@@ -318,7 +339,7 @@ def prepare_inputs(input_xlsx: Path, output_dir: Path) -> pd.DataFrame:
 
     validated: List[Tuple[str, pd.DataFrame]] = []
     qc_rows: List[Dict[str, object]] = []
-    for sheet, key, n, positive, negative, features in SHEET_PLAN:
+    for sheet, key, n, positive, negative, features in selected_plan:
         frame, qc = _read_validate_sheet(
             input_xlsx,
             sheet,
@@ -354,6 +375,12 @@ def prepare_inputs(input_xlsx: Path, output_dir: Path) -> pd.DataFrame:
             _sha256(stage / f"{key}.xlsx") for key, _ in validated
         ]
         qc_table.to_csv(stage / "input_qc.csv", index=False, encoding="utf-8-sig")
+        coverage = pd.DataFrame(coverage_rows(seen, seen))
+        source_sheets = {item[1]: item[0] for item in selected_plan}
+        coverage["source_sheet"] = coverage["dataset"].map(source_sheets).fillna("")
+        coverage["source_workbook"] = input_xlsx.name
+        coverage["source_sha256"] = _sha256(input_xlsx)
+        coverage.to_csv(stage / "input_coverage.csv", index=False, encoding="utf-8-sig")
 
         if output_dir.exists():
             output_dir.rmdir()  # Preflight guarantees that it is empty.
@@ -366,7 +393,7 @@ def prepare_inputs(input_xlsx: Path, output_dir: Path) -> pd.DataFrame:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Prepare the 17 canonical analysis inputs from Supplementary Data 1."
+        description="Prepare supplied study matrices, preserving original dataset identities."
     )
     parser.add_argument("--input", type=Path, default=INPUT_XLSX)
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)

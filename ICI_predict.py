@@ -65,6 +65,11 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import RepeatedStratifiedKFold
 
+import dataset_selection
+from dataset_selection import (
+    FORMAL_PRE_KEYS, KNOWN_DATASET_KEYS, canonical_key, coverage_rows, select_available,
+)
+
 
 # =============================================================================
 # USER SETTINGS: edit this section
@@ -106,7 +111,7 @@ SD_AS_R_SHEET = "Sheet3"
 DATASETS_TO_RUN = "ALL"
 PRIMARY_TARGETS= "ALL" #: Union[str, List[str]] = "ALL"
 SD_TARGETS: List[str] = ["dataset1_pre", "dataset1_post1"]
-KNN_TARGETS: List[str] = ["dataset2_pre"]
+KNN_TARGETS: List[str] = list(FORMAL_PRE_KEYS)
 OUTER3_TARGETS: Union[str, List[str]] = "ALL_PRIMARY"
 
 RUN_PRIMARY = True
@@ -239,7 +244,7 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "datasets_to_run": "ALL",
         "primary_targets": "ALL",
         "sd_targets": ("dataset1_pre", "dataset1_post1"),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL_PRIMARY",
         "run_primary": True,
         "run_sd": False,
@@ -260,7 +265,7 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "datasets_to_run": ("dataset1_pre", "dataset1_post1"),
         "primary_targets": "ALL",
         "sd_targets": ("dataset1_pre", "dataset1_post1"),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL_PRIMARY",
         "run_primary": False,
         "run_sd": True,
@@ -276,12 +281,12 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "primary_scenario_source": "primary",
     },
     "knn": {
-        "description": "K-nearest-neighbor imputation sensitivity analysis.",
+        "description": "KNN preprocessing sensitivity in the six formal pre-ICI datasets.",
         "run_tag": "All_data_KNN",
-        "datasets_to_run": ("dataset2_pre",),
+        "datasets_to_run": FORMAL_PRE_KEYS,
         "primary_targets": "ALL",
         "sd_targets": ("dataset2_pre",),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL_PRIMARY",
         "run_primary": False,
         "run_sd": False,
@@ -302,7 +307,7 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "datasets_to_run": "ALL",
         "primary_targets": "ALL",
         "sd_targets": ("dataset1_pre", "dataset1_post1"),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL_PRIMARY",
         "run_primary": False,
         "run_sd": False,
@@ -323,7 +328,7 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "datasets_to_run": "ALL",
         "primary_targets": "ALL",
         "sd_targets": ("dataset1_pre", "dataset1_post1"),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL",
         "run_primary": False,
         "run_sd": False,
@@ -344,7 +349,7 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
         "datasets_to_run": _REGGRID_KEYS,
         "primary_targets": _REGGRID_KEYS,
         "sd_targets": ("dataset1_pre", "dataset1_post1"),
-        "knn_targets": ("dataset2_pre",),
+        "knn_targets": FORMAL_PRE_KEYS,
         "outer3_targets": "ALL_PRIMARY",
         "run_primary": True,
         "run_sd": False,
@@ -363,6 +368,8 @@ _SCENARIO_PROFILES: Dict[str, Dict[str, Any]] = {
 
 ACTIVE_SCENARIO = "primary"
 ACTIVE_SCENARIO_METADATA: Dict[str, Any] = {}
+# A CLI --datasets request is always strict, including when equal to a profile.
+EXPLICIT_DATASET_SELECTION = False
 
 
 def _selector_copy(value: Any) -> Any:
@@ -383,7 +390,7 @@ def get_public_scenario_profile(name: str) -> Dict[str, Any]:
 
 def configure_scenario(name: str) -> Dict[str, Any]:
     """Apply one recorded scenario profile and return its detached metadata."""
-    global ACTIVE_SCENARIO, ACTIVE_SCENARIO_METADATA
+    global ACTIVE_SCENARIO, ACTIVE_SCENARIO_METADATA, EXPLICIT_DATASET_SELECTION
     global RUN_TAG, DATASETS_TO_RUN, PRIMARY_TARGETS, SD_TARGETS, KNN_TARGETS
     global OUTER3_TARGETS, RUN_PRIMARY, RUN_SD_SENSITIVITY
     global RUN_KNN_SENSITIVITY, RUN_OUTER3_SENSITIVITY
@@ -392,6 +399,7 @@ def configure_scenario(name: str) -> Dict[str, Any]:
 
     profile = get_public_scenario_profile(name)
     ACTIVE_SCENARIO = name
+    EXPLICIT_DATASET_SELECTION = False
     RUN_TAG = str(profile["run_tag"])
     DATASETS_TO_RUN = _selector_copy(profile["datasets_to_run"])
     PRIMARY_TARGETS = _selector_copy(profile["primary_targets"])
@@ -668,12 +676,22 @@ def _canonical_target(value: str) -> str:
 
 
 def select_targets(selector: TARGET_SELECTOR, available: Iterable[str]) -> List[str]:
-    available_ordered = list(dict.fromkeys(_canonical_target(x) for x in available))
-    available_set = set(available_ordered)
-    if isinstance(selector, str) and selector.upper() in {"ALL", "ALL_PRIMARY"}:
-        return available_ordered
-    requested = [_canonical_target(x) for x in selector] if not isinstance(selector, str) else [_canonical_target(selector)]
-    return [key for key in requested if key in available_set]
+    """Strict explicit selection; ALL selects the supplied known inputs."""
+    return select_available(selector, available)
+
+
+def _profile_targets(
+    profile_key: str, selector: TARGET_SELECTOR, available: Iterable[str],
+) -> List[str]:
+    """Profile defaults intersect availability; user overrides remain strict."""
+    default = _SCENARIO_PROFILES[ACTIVE_SCENARIO][profile_key]
+    normalized = selector if isinstance(selector, str) else tuple(selector)
+    if normalized == default and not (
+        profile_key == "datasets_to_run" and EXPLICIT_DATASET_SELECTION
+    ):
+        default_keys = None if isinstance(default, str) else default
+        return select_available("ALL", available, default_keys=default_keys)
+    return select_targets(selector, available)
 
 
 def _resolve_user_path(value: str) -> Path:
@@ -701,12 +719,11 @@ def discover_datasets() -> Dict[str, DatasetSpec]:
         override = override_lookup.get(path)
         match = STANDARD_NAME_RE.match(path.name)
         if override is None and match is None:
-            if INPUT_FILES:
-                raise ValueError(
-                    f"Non-standard input filename: {path.name}. "
-                    "Use datasetN_pre/post1/post2.xlsx or INPUT_METADATA_OVERRIDES."
-                )
-            continue
+            raise ValueError(
+                f"Non-standard input filename: {path.name}. "
+                "Keep only canonical study inputs under INPUT_DIR, or specify "
+                "INPUT_FILES/INPUT_METADATA_OVERRIDES explicitly."
+            )
 
         if override is not None:
             dataset_id = _canonical_target(override["dataset_id"])
@@ -723,7 +740,7 @@ def discover_datasets() -> Dict[str, DatasetSpec]:
         if timepoint not in {"pre", "post1", "post2"}:
             raise ValueError(f"Invalid timepoint for {path}: {timepoint}")
 
-        key = f"{dataset_id}_{timepoint}"
+        key = canonical_key(f"{dataset_id}_{timepoint}")
         if key in specs:
             raise ValueError(f"Multiple input files resolve to {key}: {specs[key].path} and {path}")
         specs[key] = DatasetSpec(
@@ -1919,8 +1936,17 @@ def _output_dir_for(spec: DatasetSpec, scenario: ScenarioSpec) -> Path:
     return root / section / scenario.name / spec.key
 
 
+def _selector_provenance() -> Dict[str, str]:
+    selector_path = Path(dataset_selection.__file__).resolve()
+    return {
+        "dataset_selection_path": str(selector_path),
+        "dataset_selection_sha256": sha256_file(selector_path),
+    }
+
+
 def _scenario_settings_payload(spec: DatasetSpec, scenario: ScenarioSpec, outer_splits_used: int) -> Dict[str, Any]:
     return {
+        **_selector_provenance(),
         "dataset": asdict(spec),
         "scenario": asdict(scenario),
         "invocation_scenario": ACTIVE_SCENARIO,
@@ -2534,6 +2560,7 @@ def run_nested_cv(spec: DatasetSpec, scenario: ScenarioSpec) -> RunResult:
         "label_mapping": {"Responder": 1, "Non-responder": 0, "numeric": "0/1"},
         "script_path": str(script_path),
         "script_sha256": sha256_file(script_path),
+        **_selector_provenance(),
         "python_version": platform.python_version(),
         "package_versions": {
             "numpy": np.__version__,
@@ -2574,7 +2601,7 @@ def run_nested_cv(spec: DatasetSpec, scenario: ScenarioSpec) -> RunResult:
 # =============================================================================
 
 def _intersect_with_global_targets(keys: Sequence[str]) -> List[str]:
-    global_selected = set(select_targets(DATASETS_TO_RUN, keys))
+    global_selected = set(_profile_targets("datasets_to_run", DATASETS_TO_RUN, keys))
     return [key for key in keys if key in global_selected]
 
 
@@ -2598,7 +2625,7 @@ def _sensitivity_scenarios(
     scheduled: List[Tuple[DatasetSpec, ScenarioSpec]] = []
 
     if RUN_SD_SENSITIVITY:
-        for key in select_targets(SD_TARGETS, available):
+        for key in _profile_targets("sd_targets", SD_TARGETS, available):
             spec = specs[key]
             if spec.dataset_id != "dataset1":
                 raise ValueError(f"SD sensitivity sheets are supported only for Dataset 1: {key}")
@@ -2630,7 +2657,7 @@ def _sensitivity_scenarios(
             )
 
     if RUN_KNN_SENSITIVITY:
-        for key in select_targets(KNN_TARGETS, available):
+        for key in _profile_targets("knn_targets", KNN_TARGETS, available):
             spec = specs[key]
             scheduled.append(
                 (
@@ -2648,7 +2675,7 @@ def _sensitivity_scenarios(
 
     if RUN_OUTER3_SENSITIVITY:
         outer3_available = list(primary_results) if OUTER3_TARGETS == "ALL_PRIMARY" else available
-        for key in select_targets(OUTER3_TARGETS, outer3_available):
+        for key in _profile_targets("outer3_targets", OUTER3_TARGETS, outer3_available):
             spec = specs[key]
             scheduled.append(
                 (
@@ -2665,7 +2692,7 @@ def _sensitivity_scenarios(
             )
 
     if RUN_KMAX_SENSITIVITY:
-        target_set = set(select_targets(KMAX_EXPLICIT_TARGETS, available))
+        target_set = set(_profile_targets("kmax_targets", KMAX_EXPLICIT_TARGETS, available))
         if AUTO_KMAX_FROM_PRIMARY:
             target_set.update(
                 key
@@ -2714,14 +2741,28 @@ def _master_manifest_row(result: RunResult) -> Dict[str, Any]:
 def main() -> None:
     specs = discover_datasets()
     available = _intersect_with_global_targets(list(specs))
+    root = OUTPUT_ROOT / RUN_TAG if RUN_TAG else OUTPUT_ROOT
+    root.mkdir(parents=True, exist_ok=True)
+    coverage_path = root / "input_coverage.csv"
+    if coverage_path.exists() and not ALLOW_OVERWRITE:
+        raise FileExistsError(f"Existing invocation coverage will not be overwritten: {coverage_path}")
+    coverage = pd.DataFrame(coverage_rows(specs, available))
+    coverage["invocation_scenario"] = ACTIVE_SCENARIO
+    coverage["invocation_status"] = "scheduled" if available else "no_applicable_inputs"
+    coverage["input_file"] = coverage["dataset"].map(
+        {key: str(spec.path) for key, spec in specs.items()}
+    ).fillna("")
+    to_csv_utf8sig(coverage, coverage_path)
     if not available:
-        raise RuntimeError("DATASETS_TO_RUN did not match any discovered input")
+        print(f"No supplied inputs apply to scenario {ACTIVE_SCENARIO!r}; "
+              f"coverage recorded in {root / 'input_coverage.csv'}")
+        return
 
     results: List[RunResult] = []
     primary_results: Dict[str, RunResult] = {}
 
     if RUN_PRIMARY:
-        for key in select_targets(PRIMARY_TARGETS, available):
+        for key in _profile_targets("primary_targets", PRIMARY_TARGETS, available):
             result = run_nested_cv(specs[key], _primary_scenario(specs[key]))
             results.append(result)
             primary_results[key] = result
@@ -2729,11 +2770,22 @@ def main() -> None:
     for spec, scenario in _sensitivity_scenarios(specs, primary_results):
         results.append(run_nested_cv(spec, scenario))
 
-    root = OUTPUT_ROOT / RUN_TAG if RUN_TAG else OUTPUT_ROOT
-    root.mkdir(parents=True, exist_ok=True)
+    completed_keys = {result.dataset_key for result in results}
+    coverage["selection_status"] = coverage["dataset"].map(
+        lambda key: "selected" if key in completed_keys else "not_selected"
+    )
+    if not results:
+        coverage["invocation_status"] = "no_analyses_scheduled"
+        to_csv_utf8sig(coverage, coverage_path)
+        print(f"No analyses were scheduled for scenario {ACTIVE_SCENARIO!r}; "
+              f"check target selectors and enabled analyses. Coverage: {coverage_path}")
+        return
+
     manifest = pd.DataFrame([_master_manifest_row(result) for result in results])
     if not manifest.empty:
         to_csv_utf8sig(manifest, root / "run_manifest.csv")
+    coverage["invocation_status"] = "completed"
+    to_csv_utf8sig(coverage, coverage_path)
     print("=" * 88)
     print(f"All requested analyses completed: {len(results)} run(s)")
     print(f"Manifest: {root / 'run_manifest.csv'}")
@@ -2752,9 +2804,25 @@ def _parse_cli_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         default="primary",
         help="Analysis configuration to run (default: primary).",
     )
+    parser.add_argument(
+        "--datasets", nargs="+", default=None, metavar="DATASET_KEY",
+        help="Explicit canonical inputs; unknown or unavailable keys are errors.",
+    )
     return parser.parse_args(argv)
 
 
+def configure_cli(args: argparse.Namespace) -> None:
+    global DATASETS_TO_RUN, EXPLICIT_DATASET_SELECTION
+    configure_scenario(args.scenario)
+    if args.datasets is not None:
+        # Restrict requests to the scenario's intended study matrices.
+        profile_selector = _SCENARIO_PROFILES[ACTIVE_SCENARIO]["datasets_to_run"]
+        eligible = select_available(profile_selector, KNOWN_DATASET_KEYS)
+        select_available(args.datasets, eligible)
+        DATASETS_TO_RUN = list(args.datasets)
+        EXPLICIT_DATASET_SELECTION = True
+
+
 if __name__ == "__main__":
-    configure_scenario(_parse_cli_args().scenario)
+    configure_cli(_parse_cli_args())
     main()

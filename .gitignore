@@ -6,6 +6,13 @@ __MACOSX/
 # Generated analysis inputs and outputs
 raw/
 results_revision/
+results_revision_v2/
+results_revision_round2_knn/
+revision2_reporting/
+round2_reporting/
+round2_calibration/
+round2_figures/
+*_completed_*.zip
 Supplementary Data 1.xlsx
 
 # Local environments and editor state
