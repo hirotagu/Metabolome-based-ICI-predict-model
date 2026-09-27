@@ -36,6 +36,7 @@ import sklearn
 
 import ICI_predict as base
 import ICI_analysis_common as common
+import dataset_selection as selection
 
 
 # =============================================================================
@@ -65,8 +66,8 @@ RUN_TAG = "Compare_sensitivity_v1"
 # scenarios and remains available for an internal exact-reproduction run.
 SCENARIOS_TO_RUN: Union[str, List[str]] = ["knn", "kmax30", "outer3", "reggrid"]
 
-# "ALL" uses each scenario's prespecified target set.  A dataset list can be
-# used for a technical smoke test; it does not expand any scenario's scope.
+# "ALL" uses the available inputs in each prespecified scenario target set.
+# Explicit requests must be present; no selection expands a scenario's scope.
 DATASETS_TO_RUN: Union[str, List[str]] = "ALL"
 
 STRICT_PRODUCER_SCRIPT_HASH = True
@@ -111,10 +112,11 @@ FORMAL_PRE_KEYS: Tuple[str, ...] = (
 )
 
 SD_KEYS: Tuple[str, ...] = ("dataset1_pre", "dataset1_post1")
-KNN_KEYS: Tuple[str, ...] = ("dataset2_pre",)
+KNN_KEYS: Tuple[str, ...] = FORMAL_PRE_KEYS
 
-# Fourteen Primary matrices had at least one outer fit selecting k=10.  Kmax30
-# was nevertheless run on all 17; the remaining three are labelled surplus.
+# In the original complete study, fourteen Primary matrices had an outer fit
+# selecting k=10; Kmax30 was evaluated on all 17. Preserve those historical
+# trigger labels while processing only available selected matrices here.
 KMAX_PRIMARY_TRIGGER_KEYS: Tuple[str, ...] = (
     "dataset1_pre",
     "dataset1_post1",
@@ -329,20 +331,38 @@ def _selected_configs() -> List[ScenarioConfig]:
     return [configs[name] for name in names]
 
 
-def _selected_keys(config: ScenarioConfig) -> List[str]:
-    allowed = list(config.expected_keys)
-    if isinstance(DATASETS_TO_RUN, str):
-        if DATASETS_TO_RUN.upper() == "ALL":
-            return allowed
-        requested = [DATASETS_TO_RUN.strip().lower()]
-    else:
-        requested = [str(value).strip().lower() for value in DATASETS_TO_RUN]
-    if len(requested) != len(set(requested)):
-        raise ValueError("DATASETS_TO_RUN contains duplicate dataset keys")
-    unknown = sorted(set(requested).difference(CANONICAL_KEYS))
-    if unknown:
-        raise ValueError(f"Unknown dataset keys: {unknown}")
-    return [key for key in allowed if key in set(requested)]
+def _selected_keys(
+    config: ScenarioConfig,
+    specs: Optional[Mapping[str, base.DatasetSpec]] = None,
+) -> List[str]:
+    if specs is None:
+        specs = base.discover_datasets()
+    # Validate every explicit request before the scenario-scope intersection.
+    selected = selection.select_available(DATASETS_TO_RUN, specs)
+    return [key for key in config.expected_keys if key in selected]
+
+
+def _coverage_table(
+    specs: Mapping[str, base.DatasetSpec],
+    configs: Sequence[ScenarioConfig],
+    units: Sequence[Tuple[ScenarioConfig, str]],
+) -> pd.DataFrame:
+    rows = []
+    selected = {(config.name, key) for config, key in units}
+    for config in configs:
+        for key in CANONICAL_KEYS:
+            rows.append({
+                "scenario": config.name,
+                "dataset": key,
+                "input_status": "available" if key in specs else "not_provided",
+                "selection_status": (
+                    "not_applicable" if key not in config.expected_keys
+                    else "selected" if (config.name, key) in selected
+                    else "not_provided" if key not in specs
+                    else "not_selected"
+                ),
+            })
+    return pd.DataFrame(rows)
 
 
 def _same_sequence(left: Sequence[Any], right: Sequence[Any]) -> bool:
@@ -427,7 +447,9 @@ def _activate_engine(config: ScenarioConfig) -> Tuple[ModuleType, Dict[str, Any]
     return engine, profile
 
 
-def _validate_primary_reference() -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _validate_primary_reference(
+    required_keys: Optional[Sequence[str]] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     root = Path(PRIMARY_COMPARE_RUN_ROOT).expanduser().resolve()
     required = (
         "run_receipt.json",
@@ -481,11 +503,21 @@ def _validate_primary_reference() -> Tuple[pd.DataFrame, pd.DataFrame]:
         "delta_brier_nonnested_minus_nested",
     )
     _require_columns(comparison, required_columns, "Primary comparison table")
-    if comparison["dataset"].duplicated().any() or set(comparison["dataset"]) != set(
-        CANONICAL_KEYS
-    ):
-        raise ValueError("Primary comparison table is not the canonical unique 17-matrix set")
-    comparison = comparison.set_index("dataset").loc[list(CANONICAL_KEYS)].reset_index()
+    present = set(comparison["dataset"].astype(str))
+    if comparison["dataset"].duplicated().any() or present.difference(CANONICAL_KEYS):
+        raise ValueError("Primary comparison contains duplicate or unknown dataset keys")
+    required_keys = list(required_keys) if required_keys is not None else list(base.discover_datasets())
+    missing = set(required_keys).difference(present)
+    if missing:
+        raise ValueError(f"Primary comparison is missing selected datasets: {sorted(missing)}")
+    manifest = common.read_csv(root / "run_manifest.csv")
+    _require_columns(manifest, ("dataset", "status"), "Primary run manifest")
+    for key in required_keys:
+        rows = manifest.loc[manifest["dataset"].astype(str) == key]
+        if len(rows) != 1 or str(rows.iloc[0]["status"]) != "completed":
+            raise ValueError(f"No unique completed Primary result for selected dataset: {key}")
+    ordered_keys = [key for key in CANONICAL_KEYS if key in set(required_keys)]
+    comparison = comparison.set_index("dataset").loc[ordered_keys].reset_index()
     hash_rows = []
     for filename in required:
         path = root / filename
@@ -596,6 +628,9 @@ def _preflight_source_inventory(
     """Fail before output creation if any planned source is absent or ambiguous."""
     frames: List[pd.DataFrame] = []
     for config in configs:
+        required_keys = {key for selected_config, key in units if selected_config.name == config.name}
+        if not required_keys:
+            continue
         producer = Path(config.producer_script).expanduser().resolve()
         if not producer.is_file():
             if config.name == "reggrid":
@@ -611,7 +646,7 @@ def _preflight_source_inventory(
             if config.name == "reggrid":
                 raise FileNotFoundError(
                     f"RegGrid results are not available: {manifest_path}. "
-                    "Complete the six Pre RegGrid runs before running Compare_sensitivity."
+                    "Complete the selected available Pre RegGrid runs before running Compare_sensitivity."
                 )
             raise FileNotFoundError(f"Sensitivity manifest was not found: {manifest_path}")
         manifest = common.read_csv(manifest_path)
@@ -625,14 +660,12 @@ def _preflight_source_inventory(
             scenario_rows = scenario_rows.loc[
                 scenario_rows["status"].astype(str) == "completed"
             ].copy()
-        if scenario_rows["dataset"].duplicated().any() or set(
-            scenario_rows["dataset"].astype(str)
-        ) != set(config.expected_keys):
-            raise ValueError(
-                f"{config.name} manifest dataset set mismatch; expected "
-                f"{list(config.expected_keys)}, found "
-                f"{scenario_rows['dataset'].astype(str).tolist()}"
-            )
+        present = set(scenario_rows["dataset"].astype(str))
+        if scenario_rows["dataset"].duplicated().any() or present.difference(config.expected_keys):
+            raise ValueError(f"{config.name} manifest contains duplicate or out-of-scope datasets")
+        missing = required_keys.difference(present)
+        if missing:
+            raise ValueError(f"{config.name} manifest is missing selected completed datasets: {sorted(missing)}")
         if not (
             scenario_rows["invocation_scenario"].astype(str)
             == config.invocation_scenario
@@ -1467,6 +1500,7 @@ def _run_matching_non_nested(
     common.write_json(
         output_dir / "settings_used.json",
         {
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             "family": config.family,
             "scenario": config.name,
             "invocation_scenario": config.invocation_scenario,
@@ -1531,6 +1565,7 @@ def _run_matching_non_nested(
             "metrics": comparison,
             "warning_count": int(len(warnings_table)),
             "output_sha256": output_hashes,
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
             **common.provenance_payload(Path(__file__)),
         },
     )
@@ -1603,6 +1638,7 @@ def _run_plan(
         )
     return {
         "script_sha256": common.sha256_file(Path(__file__).resolve()),
+        "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
         "primary_compare_run_root": str(Path(PRIMARY_COMPARE_RUN_ROOT).resolve()),
         "locked_source_inventory_sha256": _inventory_fingerprint(locked_source_inventory),
         "scenarios": scenario_plan,
@@ -1827,18 +1863,21 @@ def main() -> None:
     if not RUN_TAG:
         raise ValueError("RUN_TAG must be non-empty for an auditable sensitivity comparison")
     configs = _selected_configs()
-    units = [(config, key) for config in configs for key in _selected_keys(config)]
+    specs = base.discover_datasets()
+    units = [(config, key) for config in configs for key in _selected_keys(config, specs)]
     if not units:
         raise RuntimeError("No scenario/dataset units were selected")
 
     started_time = time.time()
     started_utc = common.utc_now()
-    primary_reference, primary_hashes = _validate_primary_reference()
+    required_keys = [key for key in CANONICAL_KEYS if any(unit_key == key for _, unit_key in units)]
+    primary_reference, primary_hashes = _validate_primary_reference(required_keys)
     sensitivity_inventory = _preflight_source_inventory(configs, units)
     locked_source_inventory = pd.concat(
         [primary_hashes, sensitivity_inventory], ignore_index=True
     ).drop_duplicates(["path", "sha256"])
     run_root = _initialize_run_root(configs, locked_source_inventory)
+    common.write_csv(_coverage_table(specs, configs, units), run_root / "input_coverage.csv")
     comparison_rows: List[Dict[str, Any]] = []
     manifest_rows: List[Dict[str, Any]] = []
     warning_frames: List[pd.DataFrame] = []
@@ -1954,7 +1993,9 @@ def main() -> None:
             "scenario_names": [config.name for config in configs],
             "selected_units": [f"{config.name}/{key}" for config, key in units],
             "n_expected_units": len(units),
-            "hypothesis_tests": "not performed; Primary Pre inference remains the sole formal test",
+            "input_coverage_file": "input_coverage.csv",
+            "dataset_selection_sha256": common.sha256_file(Path(selection.__file__).resolve()),
+            "hypothesis_tests": "not performed; Compare_method retains descriptive nominal comparisons only when all six prespecified Pre cohorts are present",
             "bootstrap_intervals": "not computed",
             "post_analysis": "descriptive only; repeated time points are not independent cohorts",
             "dataset6_analysis": "descriptive exploratory supplement only",
@@ -1962,7 +2003,7 @@ def main() -> None:
                 "not paired because SD inclusion changes sample size and label definition"
             ),
             "kmax30_scope": (
-                "all 17 completed; 14 Primary ceiling-triggered and 3 labelled exploratory surplus"
+                "available selected matrices only; original Primary ceiling-trigger labels retained"
             ),
             "resume_completed_units": RESUME_COMPLETED_UNITS,
             "continue_on_unit_error": CONTINUE_ON_UNIT_ERROR,

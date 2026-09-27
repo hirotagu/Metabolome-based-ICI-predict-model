@@ -1,66 +1,61 @@
 # ICI metabolomics validation analyses
 
-This repository contains a consolidated public implementation of the Python
-analyses used to compare repeated nested cross-validation with intentionally
-non-nested validation in the ICI metabolomics study. It preserves the recorded
-analysis settings while removing duplicated scenario-specific script copies.
-The workflow starts from the 17 analysis-ready matrices released as
-`Supplementary Data 1.xlsx`.
+Research code comparing nested, intentionally non-nested, selective-nesting,
+and holdout validation in the ICI metabolomics study.
 
-The code is intended for research reproducibility and method inspection. It
-does not provide a clinically deployable prediction model or a prespecified
-clinical decision threshold.
+This revision adds revision-2 reporting and accepts any nonempty subset of
+known study matrices. Dataset numbers retain their original meaning.
+File presence does not establish permission to share data.
 
-## Contents
+## Files
 
 | File | Purpose |
 |---|---|
-| `prepare_inputs.py` | Validates and converts the 17 sheets in Supplementary Data 1 into the canonical input workbooks used by the analysis. |
-| `ICI_predict.py` | Primary repeated nested CV and the KNN, kmax30, outer3, regularization-grid, and SD sensitivity configurations. |
-| `ICI_analysis_common.py` | Shared model-fitting, validation, metrics, bootstrap, receipt, and provenance functions. This module is imported by the other scripts and is not run directly. |
-| `Compare_method.py` | Fully non-nested analysis and comparison with the primary nested-CV estimates. |
-| `Compare_nest.py` | Selective-nesting diagnostic for the six formal pre-ICI cohorts (Datasets 1-5 and 7). |
-| `Compare_sensitivity.py` | Scenario-matched nested versus non-nested sensitivity comparisons. |
-| `Holdout.py` | Prespecified seed-42 holdout and 25 repeated stratified holdouts. Dataset 3 Post 2 automatically uses the required higher elastic-net iteration ceiling. |
-| `Metrics_Calibration.py` | Discrimination, Brier score, and calibration analyses from saved predictions. |
+| `prepare_inputs.py` | Validate supplied sheets and create canonical input workbooks. |
+| `dataset_selection.py` | Study mapping, subset selection, and coverage records. |
+| `ICI_predict.py` | Nested CV and primary/sensitivity scenario settings. |
+| `ICI_analysis_common.py` | Shared fitting, metrics, artifact validation, and provenance. |
+| `Compare_method.py` | Intentionally non-nested comparison with nested CV. |
+| `Compare_nest.py` | Selective nesting for available formal pre-ICI datasets. |
+| `Compare_sensitivity.py` | Scenario-matched nested/non-nested comparisons. |
+| `Holdout.py` | Seed-42 holdout and 25 repeated stratified holdouts. |
+| `Metrics_Calibration.py` | Saved-prediction metrics and bin-wise Wilson intervals. |
+| `Revision2_reporting.py` | Dataset-omission, LC/MS-only, paired-repeat and KNN summaries; no fitting. |
+| `Revision2_calibration.py` | Wilson-bin source tables from archived or current saved OOF predictions; no fitting. |
+| `Revision2_figures.py` | Calibration figures from validated aggregate Wilson-bin tables, including partial-coverage labels. |
+| `tests/` | Subset-input and numerical reporting regression tests. |
 
-Publication-only figure assembly and manual manuscript table formatting are not
-part of this repository. The submitted figures, tables, and source-data files
-are provided with the article.
+## Environment
 
-## Software environment
-
-The analyses were run with Python 3.11.14 and the package versions pinned in
-`requirements.txt`:
-
-- numpy 2.3.3
-- pandas 2.3.3
-- scikit-learn 1.7.2
-- scipy 1.16.2
-- openpyxl 3.1.5
-
-Example environment setup:
+Use Python 3.11 with `requirements.txt` for the original analysis environment.
+The main analyses and existing Dataset 2 KNN results used Python 3.11.14;
+the additional revision-2 KNN runs used Python 3.11.16 with the same scientific
+package versions. See `REVISION2_VALIDATION.md` for the update's validation
+environment; that validation is not a claim to have refitted every model.
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-## Prepare the public inputs
+Select this environment in Positron. Script settings are near the top of each
+file. Model runs are computationally intensive.
 
-Place `Supplementary Data 1.xlsx` beside the scripts, then run:
+## Use the input matrices you have
+
+Place a permitted analysis-ready `Supplementary Data 1.xlsx` beside the code:
 
 ```bash
 python prepare_inputs.py --input "Supplementary Data 1.xlsx"
 ```
 
-The script creates `raw/` with 17 one-sheet workbooks and `input_qc.csv`. It
-checks sheet order, IDs, binary outcomes, numeric feature values, cohort counts,
-feature counts, and output hashes. Existing inputs are never overwritten.
+The workbook may contain **any nonempty subset** of these original sheets, in
+any order. A `README` sheet is optional. Canonical keys can also be sheet names.
+Do not rename a retained Sheet3 to Sheet1 after removing another dataset.
+Supplying both names for the same dataset is an error.
 
-| Source sheet | Canonical analysis key |
+| Original sheet | Canonical key |
 |---|---|
 | Sheet1 | dataset1_pre |
 | Sheet2 | dataset2_pre |
@@ -80,92 +75,148 @@ feature counts, and output hashes. Existing inputs are never overwritten.
 | Sheet16 | dataset4_post2 |
 | Sheet17 | dataset5_post2 |
 
-## Run the analyses
+For example, only Sheet3, Sheet4, Sheet5, and Sheet7 is valid and remains
+Datasets 3, 4, 5, and 7 Pre. The converter validates IDs, labels, numeric
+values, original sample/class/feature counts, and hashes. It writes supplied
+matrices to `raw/`, plus `input_qc.csv` and `input_coverage.csv`.
+Existing input directories are not overwritten.
 
-Run the following commands from the repository root. Each script writes to a
-separate subdirectory under `results_revision/` and refuses to overwrite a
-completed run.
+Already prepared canonical `datasetN_pre.xlsx`, `datasetN_post1.xlsx`, or
+`datasetN_post2.xlsx` files can instead be placed in `raw/` directly.
+Each has `Sheet1` with `id`, `category` (or the supported `Responder`
+column), and features. Only the 17 known keys are accepted; keep unrelated
+workbooks outside `raw/`.
+
+Absent inputs are `not_provided`. Unknown names, duplicate mappings,
+malformed present inputs, and explicitly requested missing datasets are errors.
+This is a study-reproduction workflow, not a generic new-cohort interface.
+
+These inputs are **analysis-ready study matrices**, not the original source
+study workbooks. The uploaded `data3-5作成.py` performs clinical/metabolite joins,
+outcome construction and cohort exclusions; `data6作成.py` combines source
+mwTab measurements. Those reconstruction steps are not performed by
+`prepare_inputs.py`. Their outputs also use different sheet/file names and
+must be mapped to the documented canonical analysis-ready format before use.
+
+## Run on available inputs
 
 ```bash
-# Primary repeated nested CV: 17 matrices
 python ICI_predict.py --scenario primary
-
-# Primary nested versus fully non-nested comparison
 python Compare_method.py
-
-# Selective-nesting diagnostic: Datasets 1-5 and 7, pre-ICI
 python Compare_nest.py
 
-# Publicly reproducible sensitivity scenarios
 python ICI_predict.py --scenario knn
 python ICI_predict.py --scenario kmax30
 python ICI_predict.py --scenario outer3
 python ICI_predict.py --scenario reggrid
 python Compare_sensitivity.py
 
-# Repeated holdout and calibration
 python Holdout.py
 python Metrics_Calibration.py
 ```
 
-These analyses are computationally intensive. Do not rename or edit the Python
-files between dependent runs: downstream scripts verify producer and artifact
-SHA256 hashes. If code or settings are changed, start again in a clean output
-directory rather than mixing outputs from different versions.
+Defaults intersect supplied inputs with the intended scenario scope.
+KNN and expanded-grid sensitivity target Datasets 1–5 and 7 Pre.
+Explicit requests, for example, remain strict:
 
-## Analysis scenarios
-
-`ICI_predict.py` contains one modeling implementation. The command-line
-scenario selects only the prespecified targets and settings:
-
-| Scenario | Analysis |
-|---|---|
-| `primary` | Primary repeated nested CV on all 17 matrices |
-| `knn` | KNN-imputation sensitivity analysis for Dataset 2 Pre |
-| `kmax30` | Maximum top-k increased from 10 to 30 on all 17 matrices |
-| `outer3` | Three-fold outer-CV sensitivity analysis on all 17 matrices |
-| `reggrid` | Expanded regularization-grid sensitivity analysis on Datasets 1-5 and 7 Pre |
-| `sd` | Stable disease recoded as responder/non-responder for Dataset 1 Pre and Post 1 |
-
-### Stable-disease sensitivity analysis
-
-The two alternative stable-disease recodings used by the `sd` scenario are not
-included in Supplementary Data 1. The scenario code is retained for transparent
-method reporting, but this branch cannot be reproduced from the publicly
-provided workbook alone. Consequently, the public default in
-`Compare_sensitivity.py` compares `knn`, `kmax30`, `outer3`, and `reggrid`; it
-does not silently claim to reproduce the unavailable SD branch.
-
-## Reproducibility safeguards
-
-- Random seed: 42.
-- Imputation, scaling, feature ranking, feature selection, and tuning are fitted
-  within training partitions.
-- Primary discrimination is calculated from held-out, patient-level averaged
-  out-of-fold predictions.
-- Sample counts, settings, software versions, warnings, output hashes, and
-  producer hashes are recorded in run receipts.
-- Bootstrap intervals are conditional on the saved patient-level averaged OOF
-  predictions and do not include uncertainty from repartitioning, feature
-  selection, tuning, or model refitting.
-- The repeated holdout splits overlap and are used descriptively rather than as
-  independent replicates.
-
-## Generated files
-
-The principal run directories are:
-
-```text
-results_revision/All_data_primary
-results_revision/Compare_method_v1
-results_revision/Compare_nest_v1
-results_revision/All_data_KNN
-results_revision/All_data_Kmax30
-results_revision/All_data_outer3
-results_revision/All_data_RegGrid
-results_revision/Compare_sensitivity_v1
-results_revision/Holdout_v1
-results_revision/Metrics_Calibration_v1
+```bash
+python ICI_predict.py --scenario knn --datasets dataset3_pre dataset4_pre
 ```
 
-Generated input and result directories are excluded by `.gitignore`.
+Downstream scripts expose `DATASETS_TO_RUN` and run-root settings.
+Selected inputs must have their required completed upstream outputs;
+missing results are not silently treated as unavailable data.
+
+The optional `sd` scenario needs the separately authorized stable-disease
+recoding sheets, which were not included in the published input workbook.
+
+Each analysis records `input_coverage.csv`. Subset results do not reproduce
+the full six-dataset or 17-matrix analysis. Six-dataset nominal tests remain
+`not_run` when any formal pre-ICI dataset is missing.
+
+## Revision-2 reporting from completed results
+
+`Revision2_reporting.py` reads saved artifacts without feature selection,
+tuning, or model fitting. Use `python Revision2_reporting.py --help` for
+input-root options and the explicit completed-KNN-extension adapter.
+It exports aggregate tables, coverage, and input/output hashes.
+Patient-level predictions used for validation are not exported in these tables.
+
+For newly generated outputs:
+
+```bash
+python Revision2_reporting.py --knn-root results_revision/All_data_KNN --sensitivity-root results_revision/Compare_sensitivity_v1
+python Revision2_calibration.py
+```
+
+For the completed original results (edit paths to your local folders):
+
+```bash
+python Revision2_reporting.py --main-root ../results_revision_v2/All_data_primary --compare-root ../results_revision_v2/Compare_method_v1 --knn-extension-root ../results_revision_round2_knn --out ../round2_reporting
+python Revision2_calibration.py --main-root ../results_revision_v2/All_data_primary --compare-root ../results_revision_v2/Compare_method_v1 --out ../round2_calibration
+```
+
+The extension adapter is explicitly selected; it retains the original Dataset
+2 reused-result identity and the five new-result identities. `Revision2_calibration.py`
+recreates the original 10 quantile bins and exact positive counts from saved
+OOF predictions. These two reporting commands do not require raw matrices or
+rerunning the modified model producers. If KNN results are absent, omit
+`--knn-root`, `--sensitivity-root`, and `--knn-extension-root` to generate
+main-only reports with KNN marked `not_requested`.
+
+To render the revised calibration figure from aggregate bins:
+
+```bash
+python -m pip install -r requirements-figures.txt
+python Revision2_figures.py --input-dir ../round2_calibration --out ../round2_figures
+```
+
+The renderer validates the bin-table hashes and coverage before plotting.
+It uses the accepted red/black calibration style and vertical bin-wise Wilson
+error bars. A partial set of cohorts is labelled as such in the figure.
+The default font is Arial; if it is unavailable, select an installed font
+explicitly, for example `--font "DejaVu Sans"`. The actual font is recorded.
+Other manuscript figures and the older full-result publication workbook
+assembly are outside this focused reporting update.
+
+It distinguishes patient-averaged OOF AUC from repeat-specific AUC, paired
+repeat differences from independent samples, subset summaries from the full
+six-dataset results, omission ranges from confidence intervals, and KNN
+preprocessing sensitivity from an isolated imputation-only comparison.
+
+## Interpretation and provenance
+
+Primary nCV fits data-dependent preprocessing and selection within training
+partitions, apart from the documented initial all-missing feature removal.
+Intentionally non-nested and selective-nesting comparisons use the global
+ranking/tuning or eligibility decisions described in Methods; these are not
+fully nested pipelines.
+
+Bootstrap intervals condition on saved patient-level averaged OOF predictions.
+Wilson intervals condition on saved predictions and bin assignments; they are
+bin-wise and not simultaneous confidence bands. Neither quantifies full
+model-development uncertainty. Across-dataset p-values and repeated-holdout
+variation are interpreted descriptively.
+
+Keep completed results with original producer scripts and receipts.
+Strict producer/artifact hash checks remain. Do not relabel old results as
+outputs of an edited producer. The reporting adapter retains archived
+producer identities without equating them to the current code.
+
+No patient matrices, prediction tables, or result archives are distributed.
+The MIT code license does not grant data-sharing permissions.
+Clinical use requires independent validation.
+
+## Validation
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+See `REVISION2_VALIDATION.md` and `REVISION2_CHANGES.md`.
+
+The author's uploaded `revision_script.zip` has also been compared with the
+public implementation. See `REVISION2_SOURCE_AUDIT.md` for the source mapping,
+preserved settings, older publication-code scope and archived-output
+compatibility; exact uploaded-source hashes are recorded in
+`REVISION2_SOURCE_PROVENANCE.json`.

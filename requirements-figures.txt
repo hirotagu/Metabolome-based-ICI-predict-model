@@ -1,0 +1,2 @@
+# Optional plotting dependency; tested in the validation environment documented in REVISION2_VALIDATION.md.
+matplotlib==3.10.8
