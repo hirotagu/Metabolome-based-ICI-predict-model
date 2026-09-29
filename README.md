@@ -7,6 +7,33 @@ This revision adds revision-2 reporting and accepts any nonempty subset of
 known study matrices. Dataset numbers retain their original meaning.
 File presence does not establish permission to share data.
 
+## Data availability
+
+This repository and its release archives distribute code and documentation,
+not individual-level data or patient-level prediction files.
+
+- Individual-level data for **Datasets 1 and 2 are not included in the public
+  Supplementary Data 1 or in this repository**, at any time point. Enquiries
+  about access should be directed to the corresponding author identified in
+  the manuscript. Any provision requires the applicable data-owner permissions
+  and access conditions; the code license does not authorize data sharing.
+- The revised public Supplementary Data 1 contains **12 analysis-ready matrices
+  for Datasets 3–7**. Supplementary Tables S1–S9 retain the dataset-specific
+  methods and aggregate results for the complete study, including Datasets 1
+  and 2. Withholding their individual-level data does not remove them from the
+  reported analyses or change the reported results.
+- The original public sources are Li et al. (Datasets 3–5;
+  https://doi.org/10.1038/s41467-019-12361-9), Darragh et al. (Dataset 6;
+  https://doi.org/10.1038/s43018-022-00450-6), and Costantini et al. (Dataset 7;
+  https://doi.org/10.1186/s13046-025-03378-8), corresponding to manuscript
+  references 13–15. Original source workbooks and analysis-ready matrices are
+  different inputs; see the preparation instructions below.
+
+Using the public subset reproduces only the analyses for the supplied matrices.
+The available formal primary pre-ICI cohorts are Datasets 3, 4, 5 and 7;
+Dataset 6 remains a separate descriptive analysis. The full six-cohort and
+17-matrix results require the corresponding complete, authorized inputs.
+
 ## Files
 
 | File | Purpose |
@@ -42,18 +69,63 @@ python -m pip install -r requirements.txt
 Select this environment in Positron. Script settings are near the top of each
 file. Model runs are computationally intensive.
 
-## Use the input matrices you have
+## Prepare the available input matrices
 
-Place a permitted analysis-ready `Supplementary Data 1.xlsx` beside the code:
+`prepare_inputs.py` identifies a matrix by its sheet name. It accepts the
+original 17-sheet numbering or canonical keys such as `dataset3_pre`.
+It does not infer a new mapping from sheet order or from the workbook README.
+
+### Revised public workbook with 12 consecutively numbered sheets
+
+In the revised public workbook, `Sheet1` identifies Dataset 3 Pre. In the
+original 17-sheet layout, `Sheet1` identifies Dataset 1 Pre. **Do not pass the
+renumbered public workbook directly to the converter.** Its counts are checked,
+and that ambiguous naming is rejected rather than silently reassigning datasets.
+
+Make a working copy of the public workbook. After checking its README, rename
+the 12 data-sheet tabs using the mapping below and update the sheet-name column
+in its README to match. Leave the patient rows, labels and feature values
+unchanged. Save the copy as `Supplementary Data 1_canonical.xlsx`.
+
+| Revised public sheet | Canonical sheet name |
+|---|---|
+| Sheet1 | dataset3_pre |
+| Sheet2 | dataset4_pre |
+| Sheet3 | dataset5_pre |
+| Sheet4 | dataset6_pre |
+| Sheet5 | dataset7_pre |
+| Sheet6 | dataset3_post1 |
+| Sheet7 | dataset4_post1 |
+| Sheet8 | dataset5_post1 |
+| Sheet9 | dataset6_post1 |
+| Sheet10 | dataset3_post2 |
+| Sheet11 | dataset4_post2 |
+| Sheet12 | dataset5_post2 |
+
+This mapping applies only to the revised 12-matrix public layout described
+above. The original 17-sheet layout must keep its original mapping.
+
+From a clean analysis directory, with no previous private inputs in `raw/`, run:
+
+```bash
+python prepare_inputs.py --input "Supplementary Data 1_canonical.xlsx"
+```
+
+The original public workbook is retained separately. Existing input/output
+directories are not overwritten by the converter.
+
+### Original sheet numbering or already canonical sheets
+
+A workbook may contain **any nonempty subset** of the original sheets below,
+in any order, or use their canonical keys as sheet names. A `README` sheet is
+optional. This table describes the original input schema, not which data are
+publicly distributed. Datasets 1 and 2 must be supplied only with the required
+permissions. Do not renumber retained sheets, and do not supply both names for
+the same matrix.
 
 ```bash
 python prepare_inputs.py --input "Supplementary Data 1.xlsx"
 ```
-
-The workbook may contain **any nonempty subset** of these original sheets, in
-any order. A `README` sheet is optional. Canonical keys can also be sheet names.
-Do not rename a retained Sheet3 to Sheet1 after removing another dataset.
-Supplying both names for the same dataset is an error.
 
 | Original sheet | Canonical key |
 |---|---|
@@ -203,7 +275,8 @@ Strict producer/artifact hash checks remain. Do not relabel old results as
 outputs of an edited producer. The reporting adapter retains archived
 producer identities without equating them to the current code.
 
-No patient matrices, prediction tables, or result archives are distributed.
+No patient matrices, prediction tables, or result archives are distributed
+in this repository or its release archives.
 The MIT code license does not grant data-sharing permissions.
 Clinical use requires independent validation.
 
