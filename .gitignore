@@ -26,3 +26,10 @@ venv/
 *.tmp
 *.bak
 ~$*
+
+# Revision 3 local inputs and generated outputs
+raw_revision3/
+result_revision3/
+Supplementary Data 1_canonical.xlsx
+ML_revision3_organized_20261109.zip
+result_revision3.zip
