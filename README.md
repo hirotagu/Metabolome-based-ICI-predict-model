@@ -1,4 +1,4 @@
-# ICI metabolomics validation analyses — manuscript revision 3
+# ICI metabolomics validation analyses — manuscript
 
 Code supporting **Comparison of nested and non-nested cross-validation in metabolomics-based prediction of immune checkpoint inhibitor outcomes**.
 
