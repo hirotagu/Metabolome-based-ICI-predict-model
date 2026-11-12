@@ -1,0 +1,60 @@
+{
+  "source": "Executed local Reviewer 6-6 code, from result_revision3/_code/_engine",
+  "scientific_modeling_modules_unchanged": false,
+  "orchestration_changes": "Only statements about unavailable combined D1/D2 results were removed from core_jobs/sensitivity_jobs metadata. Job scopes, grids, folds and functions are unchanged.",
+  "files": {
+    "ICI_predict_v3.py": {
+      "executed_source_sha256": "f3d54052b34066e03ae76d421a2b2a8a35dd725704faebcbabf706b3069cc4cb",
+      "copied_unchanged": false,
+      "public_sha256": "e185b96a666a4bff3c2692d93a678f1791f0d94f120533a13cf0961b45150c74",
+      "scientific_functions_classes_identical": true
+    },
+    "ICI_revision_common.py": {
+      "executed_source_sha256": "d1233354c4b68ef78d279d5ec7fce91cad741d7e959325e65f4c64418dc1cfee",
+      "copied_unchanged": true,
+      "public_sha256": "d1233354c4b68ef78d279d5ec7fce91cad741d7e959325e65f4c64418dc1cfee"
+    },
+    "Compare_method.py": {
+      "executed_source_sha256": "4b74ba5b70337a265f4513abd1b87aedb3bb5de0acd8ea6961f0a5d635baaad3",
+      "copied_unchanged": true,
+      "public_sha256": "4b74ba5b70337a265f4513abd1b87aedb3bb5de0acd8ea6961f0a5d635baaad3"
+    },
+    "Compare_nest.py": {
+      "executed_source_sha256": "5e44d96ef679d8a41a95045e21515e74c8e68b894d83164cce6d883f0c626400",
+      "copied_unchanged": true,
+      "public_sha256": "5e44d96ef679d8a41a95045e21515e74c8e68b894d83164cce6d883f0c626400"
+    },
+    "Compare_sensitivity.py": {
+      "executed_source_sha256": "3a43f7d6cce25977c41517f8cba0925a829c1375ee09cdd93a4ab16b8770a461",
+      "copied_unchanged": true,
+      "public_sha256": "3a43f7d6cce25977c41517f8cba0925a829c1375ee09cdd93a4ab16b8770a461"
+    },
+    "Holdout.py": {
+      "executed_source_sha256": "e8721cebead8f0aae521a90bbdaa0d91f99a742fce955a86ffee51e2ab9dce07",
+      "copied_unchanged": true,
+      "public_sha256": "e8721cebead8f0aae521a90bbdaa0d91f99a742fce955a86ffee51e2ab9dce07"
+    },
+    "Holdout_d3-2.py": {
+      "executed_source_sha256": "3645d544298a346c9228da1b883f05993bb33be20cd4fc5b8fef4356e5046ac9",
+      "copied_unchanged": true,
+      "public_sha256": "3645d544298a346c9228da1b883f05993bb33be20cd4fc5b8fef4356e5046ac9"
+    },
+    "Metrics_Calibration.py": {
+      "executed_source_sha256": "05f64f05aa101b432aac5609bb1f6039d0aab9c71d2eb66aa7d69be159032f55",
+      "copied_unchanged": true,
+      "public_sha256": "05f64f05aa101b432aac5609bb1f6039d0aab9c71d2eb66aa7d69be159032f55"
+    },
+    "core_jobs.py": {
+      "executed_source_sha256": "d39f111ee3f26df6841b0cc595a7f96ab5eb36ea080fb4d1b6d6d3e78cce4c0f",
+      "copied_unchanged": false,
+      "public_sha256": "c402f48e95c7a109674b3d4fb171a9b7f18167873683ae1504add40c4e4f48ef"
+    },
+    "sensitivity_jobs.py": {
+      "executed_source_sha256": "9f0c5b54b79f96dda8a491d646dd646bdb1185d50ea47860f244e4dbc5796e6a",
+      "copied_unchanged": false,
+      "public_sha256": "a1d5dfff7c80d6e218186ddac7aa7cd516268ecab2246871136ee8c24ff45e07"
+    }
+  },
+  "scientific_function_bodies_unchanged": true,
+  "configuration_change": "ICI_predict_v3.PROJECT_DIR is package-relative rather than the original author-specific absolute path."
+}
