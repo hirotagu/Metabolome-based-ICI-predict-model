@@ -1,0 +1,72 @@
+{
+  "description": "Published Figure S7 source data, aggregated from the completed original and scale-aware analyses of Datasets 3–5.",
+  "data_file": "FigureS7_data.csv",
+  "data_sha256": "7c9ba3f4bf4b5b749abfdaea22da7cb9b0bdc4646d70d300064c6514f8f50587",
+  "source_plot_script_sha256": "6fd983661d96320b6aea4617d3554c80fed36780b0eb1cee5fe8b56374145c02",
+  "rows": 33,
+  "point_estimates": 66,
+  "holdout_IQR_endpoints": 36,
+  "datasets": [
+    "dataset3_pre",
+    "dataset3_post1",
+    "dataset3_post2",
+    "dataset4_pre",
+    "dataset4_post1",
+    "dataset4_post2",
+    "dataset5_pre",
+    "dataset5_post1",
+    "dataset5_post2"
+  ],
+  "columns": [
+    "panel",
+    "dataset",
+    "method",
+    "metric",
+    "original",
+    "scale_aware",
+    "interval",
+    "original_q1",
+    "original_q3",
+    "scale_aware_q1",
+    "scale_aware_q3",
+    "original_reference_auc",
+    "scale_aware_reference_auc",
+    "n_samples",
+    "n_positive",
+    "n_negative",
+    "scale_aware_minus_original"
+  ],
+  "original_analysis": "Main manuscript preprocessing; additional log1p on the supplied log10 matrices.",
+  "scale_aware_analysis": "Completed local Reviewer 6-6 analysis; supplied log10 values retained; Dataset 5 Post2 source missingness restored.",
+  "source_file_sha256": {
+    "original": {
+      "Compare_method_v1/comparison_all_datasets.csv": "aa47d8c9062e4c3452bbdd4e299b161bdc49d3adb6c4ae8f1fc601bf9cc04c03",
+      "Compare_nest_v1/nesting_comparison_all_pre.csv": "ea205e22f5592106b479eedda09bb24205944f04548afe8dea089b626f8224c2",
+      "Holdout_v1/datasets/dataset3_pre/metrics_summary.csv": "b2b57e092670eae990228d47faa02cbabdc7b8bad8cd8e8e7eb1f9bc0bde985e",
+      "Holdout_v1/datasets/dataset3_post1/metrics_summary.csv": "df42f16f53d4e422a78380ee28f327062ef4932fc1a689b27f380e40ba805e91",
+      "Holdout_d3-2_V2/datasets/dataset3_post2/metrics_summary.csv": "7e98ede4f4925eca011a3c8f9f8ada29253894340e1674cc353c1437dcaf4f39",
+      "Holdout_v1/datasets/dataset4_pre/metrics_summary.csv": "a788c196d52fbb713ce9e25b65977adf4d8232330e6ff73bfed93c6348404d66",
+      "Holdout_v1/datasets/dataset4_post1/metrics_summary.csv": "7ce34618fecdbb9c9af2a6625dd64febb437b43b8d6612880ca0efd0e661d646",
+      "Holdout_v1/datasets/dataset4_post2/metrics_summary.csv": "fb80209c2d36c1683a1b9fea8bd273d15229c0081751f1ef3b8ab3676c02b4ae",
+      "Holdout_v1/datasets/dataset5_pre/metrics_summary.csv": "e3f6f9bdd5d3e654293cae993ef037fda7b08123824c56a25138d0176f70bb60",
+      "Holdout_v1/datasets/dataset5_post1/metrics_summary.csv": "5391db4d416325a522046184629ab0d877b672d537f12d88d7b54ba0ce193bab",
+      "Holdout_v1/datasets/dataset5_post2/metrics_summary.csv": "4d4d14c31b3710bd33f38ca92f2a8c2b91c9cb1fcba8c46214f2126959085fc5"
+    },
+    "scale_aware": {
+      "Compare_method_v1/comparison_all_datasets.csv": "e2919512cbcc132dd13cffbb95a9d3a883d8b653849d9027fdf79e905cab18f7",
+      "Compare_nest_v1/nesting_comparison_all_pre.csv": "0f775ac120e455ad728ca6791b294a0cf817dd2f8609d4bc8385110d0de62a52",
+      "provenance.csv": "5b93eabcb61d0018736ed6a0a1b5c812459e50060fd13af774a111fb88b2c96b",
+      "Holdout_v1/datasets/dataset3_pre/metrics_summary.csv": "6cde30857ad908b7afc20ffaeff5976125885a0f0950871961fb8ea692eddbd8",
+      "Holdout_v1/datasets/dataset3_post1/metrics_summary.csv": "de2e1c9dd00357795dcd84f21fd1613fa3c4a65f5225a24545158e26a5e02970",
+      "Holdout_d3-2_V2/datasets/dataset3_post2/metrics_summary.csv": "a8df26701cd7f6f5c066175cf58274142e05a034377d40e2126823b929a0cecc",
+      "Holdout_v1/datasets/dataset4_pre/metrics_summary.csv": "fdc23bab8a1d887287f35b144f4fa4356e3b4496b191dc5e81a9f8150866d4fe",
+      "Holdout_v1/datasets/dataset4_post1/metrics_summary.csv": "546580071ebb55e8c754dc6befadd2c79a6688507bbde18c82f5b6ad95f26082",
+      "Holdout_v1/datasets/dataset4_post2/metrics_summary.csv": "02a367eda6769f01f456c74a53985257ae7512262a825fc93611ca3dc9a6e6f6",
+      "Holdout_v1/datasets/dataset5_pre/metrics_summary.csv": "8cc233a6849e37d08dc1bc4544e3a3fee4c2f8885dbf94a0deb95827e8bdb36e",
+      "Holdout_v1/datasets/dataset5_post1/metrics_summary.csv": "d0c1c27e6cb4dfe16d6a72db37a9a375f070db7b342c9dcdbdee995b79a94791",
+      "Holdout_v1/datasets/dataset5_post2/metrics_summary.csv": "3bcb980e3f307cef92f9875c7eb21a77dbfc2a512b940416f6a952bc175fffe1"
+    }
+  },
+  "extraction_checks": "Original final figure collector: unique rows, matched cohort/class counts, recomputed_6_6 provenance, AUROC bounds, 25 holdout splits, matching seed/test fraction, IQR ordering and matched hybrid reference AUCs.",
+  "individual_level_data_included": false
+}

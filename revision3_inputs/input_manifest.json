@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "source_study": "Li et al., Nature Communications (2019), https://doi.org/10.1038/s41467-019-12361-9",
+  "source_table": "week 8",
+  "source_workbook_sha256": "fdbf83193375538b5217e03d7e6d41143cf4d908433fc0743f5a6df4e6e35bb7",
+  "mask_file": "dataset5_post2_missing.csv",
+  "mask_sha256": "89fcd51c637cfadfb2591f1af7cc4098628d105d03a80607cd2160b241b2fc7d",
+  "repair_counts": {
+    "samples": 314,
+    "features": 202,
+    "source_missing_restored": 3275,
+    "source_observed_unchanged": 60153,
+    "genuine_zero_preserved": 24
+  },
+  "datasets": {
+    "dataset3_pre": {
+      "samples": 77,
+      "features": 202,
+      "positive": 57,
+      "negative": 20,
+      "semantic_sha256": "41f5fd1f1c1a4b7ead33bd6ac5521a868be852038c03615be2934094fb89f908",
+      "canonical_export_semantic_sha256": "93db90d0b27e71f09eb8ef6cb6babbe0a6ed59bed0c18f1f79f5f489e9cf15f6",
+      "canonical_export_rounding_cells": 5,
+      "canonical_export_max_abs_difference": 8.881784197001252e-16
+    },
+    "dataset4_pre": {
+      "samples": 72,
+      "features": 107,
+      "positive": 49,
+      "negative": 23,
+      "semantic_sha256": "522f7b56a18e0c3c758108c1b6de43de3fa1dc7a64ef7a2ecf721f5ad438a460",
+      "canonical_export_semantic_sha256": "522f7b56a18e0c3c758108c1b6de43de3fa1dc7a64ef7a2ecf721f5ad438a460",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset5_pre": {
+      "samples": 381,
+      "features": 202,
+      "positive": 199,
+      "negative": 182,
+      "semantic_sha256": "1edeef72b9b633d297c613e9d77c568f5b8d533d03cf2c226505380c2d3c31e2",
+      "canonical_export_semantic_sha256": "1edeef72b9b633d297c613e9d77c568f5b8d533d03cf2c226505380c2d3c31e2",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset6_pre": {
+      "samples": 17,
+      "features": 168,
+      "positive": 13,
+      "negative": 4,
+      "semantic_sha256": "c4f65d27bce2f30f109622c536bb69afa8c9d5d0a551caf7b8ab338131dff1db",
+      "canonical_export_semantic_sha256": "c4f65d27bce2f30f109622c536bb69afa8c9d5d0a551caf7b8ab338131dff1db",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset7_pre": {
+      "samples": 39,
+      "features": 105,
+      "positive": 21,
+      "negative": 18,
+      "semantic_sha256": "d977c7064c7d734a931158ec9ff2b6333bad6f58160ebab1d67ae19b0f4128c1",
+      "canonical_export_semantic_sha256": "d977c7064c7d734a931158ec9ff2b6333bad6f58160ebab1d67ae19b0f4128c1",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset3_post1": {
+      "samples": 71,
+      "features": 202,
+      "positive": 55,
+      "negative": 16,
+      "semantic_sha256": "91d934f69fa36527bfa81d2f6451a6e68984604a26e6bb03a09786a5b1ffce41",
+      "canonical_export_semantic_sha256": "91d934f69fa36527bfa81d2f6451a6e68984604a26e6bb03a09786a5b1ffce41",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset4_post1": {
+      "samples": 64,
+      "features": 107,
+      "positive": 46,
+      "negative": 18,
+      "semantic_sha256": "470db9f208575c4582af4c7a0d8b5fcfcf7498d504afa0a87619dc5c6d812b27",
+      "canonical_export_semantic_sha256": "69e6d6bc6b2cbc4bb42fb13446589e2e4c3c37d86c42801263ad4ca355acab48",
+      "canonical_export_rounding_cells": 1,
+      "canonical_export_max_abs_difference": 8.881784197001252e-16
+    },
+    "dataset5_post1": {
+      "samples": 95,
+      "features": 202,
+      "positive": 60,
+      "negative": 35,
+      "semantic_sha256": "eedde8b29b2bb880634ea38f0f05628f724a3c62e0ca26c7410dce675d68a6fd",
+      "canonical_export_semantic_sha256": "eedde8b29b2bb880634ea38f0f05628f724a3c62e0ca26c7410dce675d68a6fd",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset6_post1": {
+      "samples": 18,
+      "features": 168,
+      "positive": 13,
+      "negative": 5,
+      "semantic_sha256": "763e1173a51f5efb0f24d848199e7ec07af0045accbc9ce1bd6d92fefe4db1aa",
+      "canonical_export_semantic_sha256": "763e1173a51f5efb0f24d848199e7ec07af0045accbc9ce1bd6d92fefe4db1aa",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset3_post2": {
+      "samples": 61,
+      "features": 202,
+      "positive": 51,
+      "negative": 10,
+      "semantic_sha256": "ad36b1303cbc538d6bf7e664ab6ad98dea820bf081d61b3330bfe9c1b3847dc1",
+      "canonical_export_semantic_sha256": "ad36b1303cbc538d6bf7e664ab6ad98dea820bf081d61b3330bfe9c1b3847dc1",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset4_post2": {
+      "samples": 61,
+      "features": 107,
+      "positive": 47,
+      "negative": 14,
+      "semantic_sha256": "89e12108cac14ef6aaf82b52e4b61049fea9859b303f3fb126d90f2a9a04a306",
+      "canonical_export_semantic_sha256": "89e12108cac14ef6aaf82b52e4b61049fea9859b303f3fb126d90f2a9a04a306",
+      "canonical_export_rounding_cells": 0,
+      "canonical_export_max_abs_difference": 0
+    },
+    "dataset5_post2": {
+      "samples": 314,
+      "features": 202,
+      "positive": 183,
+      "negative": 131,
+      "semantic_sha256": "e046cefc1d0957f30bbc227b89d07ae39995cf09bfb777f8209d19e9026136eb",
+      "canonical_export_semantic_sha256": "b032f887c7a12269733f2d3382d33fa9eaee52af44edad37a076de8c40afa63e",
+      "canonical_export_rounding_cells": 12,
+      "canonical_export_max_abs_difference": 8.881784197001252e-16
+    }
+  },
+  "semantics": "Exact normalized IDs/binary labels/header order and float.hex of numeric input values; missing tokens normalized. Header category/Responder normalized.",
+  "canonical_export_note": "The exact archived canonical-input fingerprint and the exact prepare_inputs.py openpyxl-export fingerprint are accepted. The verified export changed only 18 floating-point representations by at most 8.881784197001252e-16; IDs, outcomes, feature order and missingness were identical. These fingerprints validate analysis inputs; no supplementary workbook is distributed or modified by this code package."
+}
